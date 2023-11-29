@@ -522,14 +522,14 @@ void handleDeleteID() {
             justify-content: center;\
             align-items: center;\
             height: 100vh;\
-        \}\
+        }\
         .container {\
             width: 300px;\
             text-align: center;\
-        \}\
+        }\
         h1 {\
             margin-top: 20px;\
-        \}\
+        }\
         input {\
             width: calc(100% - 20px);\
             padding: 10px;\
@@ -540,7 +540,7 @@ void handleDeleteID() {
             box-sizing: border-box;\
             display: block;\
             margin: 0 auto;\
-        \}\
+        }\
         button,\
         a button {\
             padding: 12px 24px;\
@@ -554,11 +554,11 @@ void handleDeleteID() {
             display: block;\
             margin: 0 auto;\
             text-decoration: none;\
-        \}\
+        }\
         button:hover,\
         a button:hover {\
             background-color: #0056b3;\
-        \}\
+        }\
     </style>\
 </head>\
 <body>\
