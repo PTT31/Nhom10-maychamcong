@@ -361,6 +361,10 @@ void TaskInternet(void *pvParameters)
         // server.on("/login", handleLogin);
         // server.on("/wifi", handleWifi);
         // server.on("/save", handleSave);
+        //server.on("/addID", handleAddID);
+        //server.on("/delID", handleDeleteID);
+        // server.on("/checkID", checkID);
+        // server.on("/handleCheckDelID", handleCheckDelID);
     }
     // server.begin();
     while (1)
@@ -375,3 +379,239 @@ void TaskInternet(void *pvParameters)
         vTaskDelay(pdMS_TO_TICKS(1000));
     }
 }
+
+void handleAddID() {
+    String temp;
+    temp = "<html>\
+<head>\
+    <title>Add New ID</title>\
+    <style>\
+        body {\
+            background-color: #f2f2f2;\
+            font-family: Arial, Helvetica, sans-serif;\
+            font-size: 16px;\
+            color: #000088;\
+            margin: 0;\
+            padding: 20px;\
+        }\
+        h1 {\
+            text-align: center;\
+        }\
+        form {\
+            max-width: 400px;\
+            margin: 0 auto;\
+        }\
+        input {\
+            width: calc(100% - 20px);\
+            padding: 10px;\
+            margin-bottom: 15px;\
+            border-radius: 5px;\
+            border: 1px solid #ccc;\
+            font-size: 16px;\
+            box-sizing: border-box;\
+        }\
+        button,\
+        a button {\
+            padding: 12px 24px;\
+            background-color: #007bff;\
+            color: white;\
+            border: none;\
+            border-radius: 5px;\
+            cursor: pointer;\
+            text-decoration: none;\
+            display: inline-block;\
+            margin-top: 10px;\
+            font-size: 16px;\
+            transition: background-color 0.3s ease;\
+        }\
+        button:hover,\
+        a button:hover {\
+            background-color: #0056b3;\
+        }\
+    </style>\
+</head>\
+<body>\
+    <h1>Nhap ID moi</h1>\
+    <form name='params' method='GET' action='checkID'>\
+        ID: <input type='number' step='1' style='font-size: 18px' name='from' required/><br>\
+        Name: <input type='text' name='name' required/><br>\
+        Position: <input type='text' name='position' required/><br>\
+        <button type='submit'>SEND</button>\
+    </form>\
+    <a href='/'><button>Tro ve trang chu</button></a><br>\
+</body>\
+</html>";
+    server.send(200, "text/html", temp.c_str());
+}
+void checkID() {
+  String idValue, nameValue, positionValue;
+
+  if (server.hasArg("from")) {
+    idValue = server.arg("from");
+    
+    // Kiểm tra xem ID đã tồn tại hay không
+    if (!isIDPresent(idValue)) {
+      // Nếu ID không tồn tại
+      idValue = server.arg("id");
+      nameValue = server.arg("name");
+      positionValue = server.arg("position");
+      addFinger(idValue);
+      addNewIDtoSD(idValue, nameValue, positionValue);
+      server.send(400, "text/plain", "finge de");
+    } else {
+      // Nếu ID đã tồn tại, gửi thông báo tương ứng
+      server.send(200, "text/plain", "ID already exists");
+      delay(2000)
+      server.on("/handleAddID", HTTP_GET, handleAddID);
+    }
+  } else {
+    // Nếu không có giá trị 'from' được cung cấp, gửi thông báo lỗi
+    server.send(400, "text/plain", "No 'id' value provided");
+  }
+}
+
+void addFinger(String id){
+  Serial.println("Ready to enroll a fingerprint!");
+  Serial.print("Enrolling ID #");
+  Serial.println(id);
+  while (!getFingerprintEnroll(id.toInt()));
+}
+uint8_t getFingerprintEnroll(int id) {
+  int p = -1;
+  Serial.print("Waiting for valid finger to enroll as #"); Serial.println(id);
+  // while(p==FINGERPRINT_NOFINGER);
+  while (p != FINGERPRINT_OK) {
+    p = finger.getImage();
+  }
+  p = finger.image2Tz(1);
+  Serial.println("Remove finger");
+  delay(2000);
+  p = 0;
+  while (p != FINGERPRINT_NOFINGER) {
+    p = finger.getImage();
+  }
+  Serial.print("ID "); Serial.println(id);
+  p = -1;
+  Serial.println("Place same finger again");
+  while (p != FINGERPRINT_OK) {
+    p = finger.getImage();
+  }
+  p = finger.image2Tz(2);
+  p = finger.createModel();
+  Serial.print("ID "); Serial.println(id);
+  p = finger.storeModel(id);
+  return true;
+}
+
+
+
+void handleDeleteID() {
+  String temp;
+  temp = "<html>\
+<head>\
+    <title>Delete ID</title>\
+    <style>\
+        body {\
+            background-color: #f2f2f2;\
+            font-family: Arial, Helvetica, sans-serif;\
+            font-size: 16px;\
+            color: #333;\
+            margin: 0;\
+            padding: 0;\
+            display: flex;\
+            justify-content: center;\
+            align-items: center;\
+            height: 100vh;\
+        }\
+        .container {\
+            width: 300px;\
+            text-align: center;\
+        }\
+        h1 {\
+            margin-top: 20px;\
+        }\
+        input {\
+            width: calc(100% - 20px);\
+            padding: 10px;\
+            margin-bottom: 15px;\
+            border-radius: 5px;\
+            border: 1px solid #ccc;\
+            font-size: 16px;\
+            box-sizing: border-box;\
+            display: block;\
+            margin: 0 auto;\
+        }\
+        button,\
+        a button {\
+            padding: 12px 24px;\
+            background-color: #007bff;\
+            color: white;\
+            border: none;\
+            border-radius: 5px;\
+            cursor: pointer;\
+            font-size: 16px;\
+            transition: background-color 0.3s ease;\
+            display: block;\
+            margin: 0 auto;\
+            text-decoration: none;\
+        }\
+        button:hover,\
+        a button:hover {\
+            background-color: #0056b3;\
+        }\
+    </style>\
+</head>\
+<body>\
+    <div class='container'>\
+        <h1>Xoa van tay</h1>\
+        <form name='params' method='GET' action='handleCheckDelID'>\
+            Xoa ID: <input type='number' step='1' name='from' required/><br>\
+            <button type='submit'>SEND</button><br>\
+        </form>\
+        <a href='/'><button>Tro ve trang chu</button></a><br>\
+    </div>\
+</body>\
+</html>";
+
+  server.send ( 200, "text/html", temp.c_str() );
+}
+
+void handleCheckDelID() {
+String idValue;
+
+  if (server.hasArg("from")) {
+    idValue = server.arg("from");
+    // Kiểm tra xem ID có tồn tại hay không
+    if (isIDPresent(idValue)) {
+      
+      bool success = deleteData(idValue); // Ví dụ: hàm xóa dữ liệu với số nhận được
+
+      if (success) {
+        server.send(200, "text/plain", "Data with number " + idValue + " deleted successfully");
+        deleteFinger(id.toInt());
+      } else {
+        server.send(500, "text/plain", "Failed to delete data");
+      }
+    }else {
+      // Nếu ID đã tồn tại, gửi thông báo tương ứng
+      server.send(200, "text/plain", "ID not found");
+      delay(2000)
+      server.on("/handleDeleteID", HTTP_GET, handleDeleteID);
+    }
+  } else {
+    server.send(400, "text/plain", "No 'id' value provided");
+  }
+}
+void deleteFinger(int deleteID){
+    if (finger.deleteModel(deleteID) == FINGERPRINT_OK) {
+      Serial.println("Đã xóa ngón tay ID "+String(deleteID)+ " thành công");
+    }
+}
+//viết hàm xóa dữ liệu trên SD đi t ko test đc đoạn ấy hehe tại ko có sd
+bool deleteData(String number){}
+bool isIDPresent(String id) {
+    // Viết logic để kiểm tra ID trong file SD ở đây xem có chưa chưa có thì true
+    return false;
+}
+//viết hộ hàm thêm user vào sd hộ nhé ko test được đoạn này 
+addNewIDtoSD(String idValue,String nameValue,String positionValue){}
