@@ -12,6 +12,12 @@
 #define MAX_LINE_LENGTH (64) // Định nghĩa độ dài tối đa của một dòng trong file
 #define mySerial Serial2     // Sử dụng Serial2 cho cảm biến vân tay
 
+#define HSPI_MISO 19
+#define HSPI_MOSI 5
+#define HSPI_SCLK 18
+#define HSPI_SS 15
+SPIClass *spi = NULL;
+
 RTC_DS1307 rtc;                     // Khai báo đối tượng RTC
 SemaphoreHandle_t spiMutex;         // Semaphore để quản lý truy cập SPI
 QueueHandle_t QueueHandle;          // Hàng đợi để truyền ID từ TaskFinger đến TaskSQL
@@ -126,7 +132,9 @@ void setup()
     {
         ; // wait for serial port to connect. Needed for native USB port only
     }
-    if (!SD.begin(5))
+    spi = new SPIClass(HSPI);
+    spi->begin(HSPI_SCLK, HSPI_MISO, HSPI_MOSI, HSPI_SS);
+    if (!SD.begin(15, *spi))
     {
         Serial.println("initialization failed!");
         while (1)
@@ -134,7 +142,7 @@ void setup()
     }
     sqlite3_initialize();
     Serial.println("initialization done.");
-    Wire.setPins(13, 14);
+    Wire.setPins(27, 26);
     if (!rtc.begin())
     {
         Serial.println("Couldn't find RTC");
@@ -148,8 +156,8 @@ void setup()
     else
     {
         Serial.println("Did not find fingerprint sensor :(");
-        while (1)
-            ;
+        // while (1)
+        //     ;
     }
 
     u8g2.begin();
@@ -294,21 +302,21 @@ bool readWiFiCredentials(char *ssid, char *password)
     }
     return false;
 }
-String processor(const String& var)
+String processor(const String &var)
 {
-  if(var == "HELLO_FROM_TEMPLATE")
-    Serial.println(var);
+    if (var == "HELLO_FROM_TEMPLATE")
+        Serial.println(var);
     return F("Hello world!");
-  return String();
+    return String();
 }
 void setupServer()
 {
     server.rewrite("/", "/addID.html");
     // server.rewrite("/addID.html", "/Wificonf.html");
     server
-    .serveStatic("/", SD, "/Web/")
-    .setDefaultFile("Wificonf.html")
-    .setAuthentication("user", "pass");
+        .serveStatic("/", SD, "/Web/")
+        .setDefaultFile("Wificonf.html")
+        .setAuthentication("user", "pass");
     server.on("/save", HTTP_POST, [](AsyncWebServerRequest *request)
               {
         if (request->hasParam("ssid", true) && request->hasParam("password", true)) {
