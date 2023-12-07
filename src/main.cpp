@@ -16,8 +16,7 @@
 #define HSPI_MOSI 5
 #define HSPI_SCLK 18
 #define HSPI_SS 15
-SPIClass *spi = NULL;
-
+SPIClass secondSPI(HSPI);
 RTC_DS1307 rtc;                     // Khai báo đối tượng RTC
 SemaphoreHandle_t spiMutex;         // Semaphore để quản lý truy cập SPI
 QueueHandle_t QueueHandle;          // Hàng đợi để truyền ID từ TaskFinger đến TaskSQL
@@ -53,7 +52,8 @@ int Finger_s();                        // Hàm để đọc ID từ cảm biến
 void drawTime(LCD u8g2); // Hàm để vẽ thời gian lên màn hình
 // Ve File
 void record(User_if user); // Hàm để ghi dữ liệu vào cơ sở dữ liệu
-int Finger_s(LCD finger);  // Hàm để đọc ID từ cảm biến vân tay
+int Finger_s(LCD finger);  // Hàm để đọc ID từ cảm biến vân tay'
+void beep(long time);      // Hàm còi beep
 void drawTime(LCD u8g2)
 {
     DateTime now;
@@ -121,20 +121,23 @@ int Finger_s(Adafruit_Fingerprint finger)
     Serial.print(finger.fingerID);
     Serial.print(" with confidence of ");
     Serial.println(finger.confidence);
+    beep(500);
     startTime_f = millis();
     return finger.fingerID;
 }
 void setup()
 {
-    // Ham cấu hình
     Serial.begin(115200);
     while (!Serial)
     {
         ; // wait for serial port to connect. Needed for native USB port only
     }
-    spi = new SPIClass(HSPI);
-    spi->begin(HSPI_SCLK, HSPI_MISO, HSPI_MOSI, HSPI_SS);
-    if (!SD.begin(15, *spi))
+    pinMode(14, OUTPUT);
+    digitalWrite(14, 0);
+    beep(500);
+    delay(500);
+    SPI.begin(HSPI_SCLK, HSPI_MISO, HSPI_MOSI, HSPI_SS);
+    if (!SD.begin(15, SPI))
     {
         Serial.println("initialization failed!");
         while (1)
@@ -191,7 +194,7 @@ void loop()
     {
         drawTime(u8g2);
         u8g2.setFont(u8g2_font_timB10_tr);
-        u8g2.setCursor(0, 64); // Đặt vị trí để in tên
+        u8g2.setCursor(0, 60); // Đặt vị trí để in tên
         u8g2.print(message.ip);
         switch (message.mode)
         {
@@ -254,7 +257,12 @@ void loop()
     }
     vTaskDelay(pdMS_TO_TICKS(500)); // Đợi 1 giây trước khi lặp lại nhiệm vụ
 }
-
+void beep(long time)
+{
+    digitalWrite(14, 1);
+    vTaskDelay(pdMS_TO_TICKS(time));
+    digitalWrite(14, 0);
+}
 AsyncWebServer server(80);
 void notFound(AsyncWebServerRequest *request)
 {
@@ -311,12 +319,13 @@ String processor(const String &var)
 }
 void setupServer()
 {
-    server.rewrite("/", "/addID.html");
-    // server.rewrite("/addID.html", "/Wificonf.html");
-    server
-        .serveStatic("/", SD, "/Web/")
-        .setDefaultFile("Wificonf.html")
-        .setAuthentication("user", "pass");
+    // server.rewrite("/", "/addID.html");
+    // // server.rewrite("/addID.html", "/Wificonf.html");
+    // server
+    //     .serveStatic("/", SD, "/Web/")
+    //     .setDefaultFile("Wificonf.html")
+    //     .setAuthentication("user", "pass");
+    server.serveStatic("/", SD, "/Web/").setTemplateProcessor(processor);
     server.on("/save", HTTP_POST, [](AsyncWebServerRequest *request)
               {
         if (request->hasParam("ssid", true) && request->hasParam("password", true)) {
@@ -367,17 +376,7 @@ void TaskInternet(void *pvParameters)
         rtc.adjust(DateTime(timeClient.getEpochTime()));
         message.ip = WiFi.localIP().toString();
         setupServer();
-
-        // server.on("/", notFound);
-        // server.on("/login", handleLogin);
-        // server.on("/wifi", handleWifi);
-        // server.on("/save", handleSave);
-        // server.on("/addID", handleAddID);
-        // server.on("/delID", handleDeleteID);
-        // server.on("/checkID", checkID);
-        // server.on("/handleCheckDelID", handleCheckDelID);
     }
-    // server.begin();
     while (1)
     {
         char rc[50];
@@ -390,114 +389,3 @@ void TaskInternet(void *pvParameters)
         vTaskDelay(pdMS_TO_TICKS(1000));
     }
 }
-
-// void handleDeleteID() {
-//   String temp;
-//   temp = "<html>\
-// <head>\
-//     <title>Delete ID</title>\
-//     <style>\
-//         body {\
-//             background-color: #f2f2f2;\
-//             font-family: Arial, Helvetica, sans-serif;\
-//             font-size: 16px;\
-//             color: #333;\
-//             margin: 0;\
-//             padding: 0;\
-//             display: flex;\
-//             justify-content: center;\
-//             align-items: center;\
-//             height: 100vh;\
-//         }\
-//         .container {\
-//             width: 300px;\
-//             text-align: center;\
-//         }\
-//         h1 {\
-//             margin-top: 20px;\
-//         }\
-//         input {\
-//             width: calc(100% - 20px);\
-//             padding: 10px;\
-//             margin-bottom: 15px;\
-//             border-radius: 5px;\
-//             border: 1px solid #ccc;\
-//             font-size: 16px;\
-//             box-sizing: border-box;\
-//             display: block;\
-//             margin: 0 auto;\
-//         }\
-//         button,\
-//         a button {\
-//             padding: 12px 24px;\
-//             background-color: #007bff;\
-//             color: white;\
-//             border: none;\
-//             border-radius: 5px;\
-//             cursor: pointer;\
-//             font-size: 16px;\
-//             transition: background-color 0.3s ease;\
-//             display: block;\
-//             margin: 0 auto;\
-//             text-decoration: none;\
-//         }\
-//         button:hover,\
-//         a button:hover {\
-//             background-color: #0056b3;\
-//         }\
-//     </style>\
-// </head>\
-// <body>\
-//     <div class='container'>\
-//         <h1>Xoa van tay</h1>\
-//         <form name='params' method='GET' action='handleCheckDelID'>\
-//             Xoa ID: <input type='number' step='1' name='from' required/><br>\
-//             <button type='submit'>SEND</button><br>\
-//         </form>\
-//         <a href='/'><button>Tro ve trang chu</button></a><br>\
-//     </div>\
-// </body>\
-// </html>";
-
-//   server.send( 200, "text/html", temp.c_str() );
-// }
-
-// void handleCheckDelID() {
-// String idValue;
-
-//   if (server.hasArg("from")) {
-//     idValue = server.arg("from");
-//     // Kiểm tra xem ID có tồn tại hay không
-//     if (isIDPresent(idValue)) {
-
-//       bool success = deleteData(idValue); // Ví dụ: hàm xóa dữ liệu với số nhận được
-
-//       if (success) {
-//         server.send(200, "text/plain", "Data with number " + idValue + " deleted successfully");
-//         deleteFinger(id.toInt());
-//       } else {
-//         server.send(500, "text/plain", "Failed to delete data");
-//       }
-//     }else {
-//       // Nếu ID đã tồn tại, gửi thông báo tương ứng
-//       server.send(200, "text/plain", "ID not found");
-//       delay(2000)
-//       server.on("/handleDeleteID", HTTP_GET, handleDeleteID);
-//     }
-//   } else {
-//     server.send(400, "text/plain", "No 'id' value provided");
-//   }
-// }
-// void deleteFinger(int deleteID){
-//     if (finger.deleteModel(deleteID) == FINGERPRINT_OK) {
-//       Serial.println("Đã xóa ngón tay ID "+String(deleteID)+ " thành công");
-//     }
-// }
-// //viết hàm xóa dữ liệu trên SD đi t ko test đc đoạn ấy hehe tại ko có sd
-// bool deleteData(String number){}
-// bool isIDPresent(String id) {
-//      uint8_t p = finger.loadModel(id);
-//     return false;
-// }
-// //viết hộ hàm thêm user vào sd hộ nhé ko test được đoạn này
-// addNewIDtoSD(String idValue,String nameValue,String positionValue){}
