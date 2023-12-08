@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>ADD ID</title>
+        <style>
+            body {
+                background-color: #f2f2f2;
+                font-family: Arial, Helvetica, sans-serif;
+                font-size: 16px;
+                color: #000088;
+                margin: 0;
+                padding: 20px;
+            }
+            h1 {
+                text-align: center;
+            }
+            input {
+                width: calc(100% - 20px);
+                padding: 10px;
+                margin-bottom: 15px;
+                border-radius: 5px;
+                border: 1px solid #ccc;
+                font-size: 16px;
+                box-sizing: border-box;
+            }
+            button,
+            a button {
+                padding: 12px 24px;
+                background-color: #007bff;
+                color: white;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+                text-decoration: none;
+                display: inline-block;
+                margin-top: 10px;
+                font-size: 16px;
+                transition: background-color 0.3s ease;
+            }
+            button:hover,
+            a button:hover {
+                background-color: #0056b3;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>Enter new ID</h1>
+        <form name='params' method='GET' action='checkID'>
+            Name: <input type='text' name='name' required/><br>
+            Position: <input type='text' name='position' required/><br>
+            <button type='submit'>SEND</button>
+        </form>
+        <a href='/'><button>Return to home page</button></a><br>
+    </body>
+</html>

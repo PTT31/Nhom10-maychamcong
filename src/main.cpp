@@ -319,12 +319,6 @@ String processor(const String &var)
 }
 void setupServer()
 {
-    // server.rewrite("/", "/addID.html");
-    // // server.rewrite("/addID.html", "/Wificonf.html");
-    // server
-    //     .serveStatic("/", SD, "/Web/")
-    //     .setDefaultFile("Wificonf.html")
-    //     .setAuthentication("user", "pass");
     server.serveStatic("/", SD, "/Web/").setTemplateProcessor(processor);
     server.on("/save", HTTP_POST, [](AsyncWebServerRequest *request)
               {
