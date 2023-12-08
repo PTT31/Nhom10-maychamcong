@@ -9,14 +9,14 @@
 #include "ESPAsyncWebServer.h"    // Thư viện ESPAsyncWebServer
 #include <SPIFFS.h>
 #include "FS.h"
-#define MAX_LINE_LENGTH (64) // Định nghĩa độ dài tối đa của một dòng trong file
+
 #define mySerial Serial2     // Sử dụng Serial2 cho cảm biến vân tay
 
 #define HSPI_MISO 19
 #define HSPI_MOSI 5
 #define HSPI_SCLK 18
 #define HSPI_SS 15
-SPIClass secondSPI(HSPI);
+
 RTC_DS1307 rtc;                     // Khai báo đối tượng RTC
 SemaphoreHandle_t spiMutex;         // Semaphore để quản lý truy cập SPI
 QueueHandle_t QueueHandle;          // Hàng đợi để truyền ID từ TaskFinger đến TaskSQL
@@ -125,6 +125,7 @@ int Finger_s(Adafruit_Fingerprint finger)
     startTime_f = millis();
     return finger.fingerID;
 }
+
 void setup()
 {
     Serial.begin(115200);
@@ -241,7 +242,6 @@ void loop()
         }
         else
         {
-            Serial.println("sadasd");
             Serial.println(user.name);
             record(user);
             message.noti = user.name;
@@ -263,6 +263,9 @@ void beep(long time)
     vTaskDelay(pdMS_TO_TICKS(time));
     digitalWrite(14, 0);
 }
+
+
+
 AsyncWebServer server(80);
 void notFound(AsyncWebServerRequest *request)
 {
