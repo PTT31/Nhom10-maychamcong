@@ -9,7 +9,6 @@
 #include "ESPAsyncWebServer.h"    // Thư viện ESPAsyncWebServer
 #include <SPIFFS.h>
 #include "FS.h"
-
 #define mySerial Serial2     // Sử dụng Serial2 cho cảm biến vân tay
 
 #define HSPI_MISO 19
@@ -54,6 +53,8 @@ void drawTime(LCD u8g2); // Hàm để vẽ thời gian lên màn hình
 void record(User_if user); // Hàm để ghi dữ liệu vào cơ sở dữ liệu
 int Finger_s(LCD finger);  // Hàm để đọc ID từ cảm biến vân tay'
 void beep(long time);      // Hàm còi beep
+void enrollFingerprint(uint8_t id);
+int findEmptyID();
 void drawTime(LCD u8g2)
 {
     DateTime now;
@@ -395,4 +396,82 @@ void TaskInternet(void *pvParameters)
         }
         vTaskDelay(pdMS_TO_TICKS(1000));
     }
+}
+
+
+void checkAddID(AsyncWebServerRequest *request) {
+    if (request->hasParam("name") && request->hasParam("position")) {
+        AsyncWebParameter* name = request->getParam("name");
+        AsyncWebParameter* position = request->getParam("position");
+
+        uint8_t emptyID = findEmptyID(); // Tìm ID trống
+        if (emptyID != 0xFF) { // Kiểm tra xem có ID trống không
+            enrollFingerprint(emptyID); // Nạp vân tay vào ID trống
+            request->send(200, "text/plain", "Fingerprint loaded successfully");
+        } else {
+            request->send(404, "text/plain", "Full sensor memory. Fingerprints cannot be added anymore");
+        }
+    }
+}
+
+int findEmptyID() {
+    for (uint8_t id = 1; id <= 162; id++) { // Duyệt qua các ID từ 1 đến 162
+        if (finger.loadModel(id) != FINGERPRINT_OK) { // Kiểm tra xem ID đã được sử dụng chưa
+            return id;
+        }
+    }
+    return -1; 
+}
+void enrollFingerprint(uint8_t id){
+    uint8_t p = finger.getImage();
+    if (p != FINGERPRINT_OK) {
+        Serial.println("Lỗi khi đọc hình ảnh");
+        return;
+    }
+    p = finger.image2Tz();
+    if (p != FINGERPRINT_OK) {
+        Serial.println("Lỗi khi chuyển đổi hình ảnh");
+        return;
+    }
+    p = finger.createModel();
+    if (p != FINGERPRINT_OK) {
+        Serial.println("Lỗi khi tạo mô hình");
+        return;
+    }
+    p = finger.storeModel(id);
+    if (p != FINGERPRINT_OK) {
+        Serial.println("Lỗi khi lưu trữ mô hình");
+        return;
+    }
+}
+void handleCheckDelID(AsyncWebServerRequest *request) {
+  String nameValue;
+
+  if (request->hasParam("from")) {
+    nameValue = request->hasParam("from");
+    uint8_t id = isIDPresent(nameValue);
+    // Kiểm tra xem ID có tồn tại hay không
+    if (id != NULL) {
+      // Xóa dữ liệu từ cảm biến vân tay
+      int idToDelete = id;
+      deleteFinger(idToDelete);
+      
+      // Xóa dữ liệu khỏi cơ sở dữ liệu của bạn ở đây
+      bool success = deleteData(nameValue); // Ví dụ: hàm xóa dữ liệu với số nhận được
+
+      if (success) {
+        request->send(200, "text/plain", "Data with number " + nameValue + " deleted successfully");
+      } else {
+        request->send(500, "text/plain", "Failed to delete data");
+      }
+    } else {
+      // Nếu ID không tồn tại, gửi thông báo tương ứng
+      request->send(200, "text/plain", "ID not found");
+    }
+  } else {
+    request->send(400, "text/plain", "No 'id' value provided");
+  }
+}
+bool isIDPresent(String nameValue){
+
 }
