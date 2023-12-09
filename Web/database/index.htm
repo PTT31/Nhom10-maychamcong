@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Query database on Micro SD</title>
+    <style>
+        body { font-family: Arial, Helvetica, sans-serif; font-size: large; color: #000088; }
+    </style>
+</head>
+<body>
+    <h1>Hello from Nhom 10</h1>
+    <h3>Query by User Id</h3>
+    <form name='params' method='GET' action='query_db'>
+        Enter id: <input type='text' style='font-size: large' value='5072621' name='so_id'/>
+        <input type='hidden' value='' name='so_disp_name'/>
+        <input type='submit' style='font-size: large' value='Query database by Id'/>
+    </form>
+    <hr>
+    <h3>Query by Display name</h3>
+    <form name='params' method='GET' action='query_db'>
+        <input type='hidden' value='' name='so_id'/>
+        Enter Display name: <input type='text' style='font-size: large' value='roadrunner' name='so_disp_name'/>
+        <br><br><input type='submit' style='font-size: large' value='Query database by Display Name'/>
+    </form>
+    <hr>
+    <h3>Aggregate Query by Location</h3>
+    <form name='params' method='GET' action='query_db'>
+        <input type='hidden' value='' name='so_id'/>
+        <input type='hidden' value='' name='so_disp_name'/>
+        Enter Location (blank for all): 
+        <input type='text' style='font-size: large' value='' name='so_loc'/>
+        <br>Minimum count:
+        <input type='text' style='font-size: large' value='10000' name='so_loc_count'/>
+        <br><br><input type='submit' style='font-size: large' value='Aggregate Query by Location'/>
+    </form>
+    <hr>
+</body>
+</html>
