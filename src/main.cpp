@@ -406,8 +406,8 @@ void checkAddID(AsyncWebServerRequest *request) {
 
         uint8_t emptyID = findEmptyID(); // Tìm ID trống
         if (emptyID != -1) { // Kiểm tra xem có ID trống không
+            db_insert(emptyID,name , position); //Them van tay vao Database
             enrollFingerprint(emptyID); // Nạp vân tay vào ID trống
-            db_insert(emptyID,name , position);
             request->send(200, "text/plain", "Fingerprint loaded successfully");
         } else {
             request->send(404, "text/plain", "Full sensor memory. Fingerprints cannot be added anymore");

@@ -98,22 +98,22 @@ int db_insert(uint8_t id, String name, String role)
     return 1;
 }
 // //xóa user
-// int db_delete(char *data){
+int db_delete(String data){
 
-//         // Đọc dữ liệu từ cổng serial
-//         const int bufferSize = 64; // Kích thước tối đa của chuỗi char
-//         char sqlQuery[bufferSize]; // Mảng char để lưu trữ chuỗi SQL
-//         // In chuỗi SQL lên Serial Monitor
-//         snprintf(sqlQuery, bufferSize, "DELETE FROM user WHERE finger_id = %s", data);
-//         Serial.println(sqlQuery);
-//         openDb(USER_DB, &db1);
-//         rc = db_exec(db1, sqlQuery);
-//         if (rc != SQLITE_OK)
-//         {
-//             sqlite3_close(db1);
-//             return 0;
-//         }
-//         sqlite3_close(db1);
-//         Serial.println("User with ID " + String(data) + " has been deleted from the database.");
-//         return 1;
-// }
+        // Đọc dữ liệu từ cổng serial
+        sqlite3 *db1;
+        const int bufferSize = 64; // Kích thước tối đa của chuỗi char
+        char sqlQuery[bufferSize]; // Mảng char để lưu trữ chuỗi SQL
+        snprintf(sqlQuery, bufferSize, "DELETE FROM user WHERE finger_id = %s", data);
+        Serial.println(sqlQuery);
+        openDb(USER_DB, &db1);
+        rc = db_exec(db1, sqlQuery);
+        if (rc != SQLITE_OK)
+        {
+            sqlite3_close(db1);
+            return 0;
+        }
+        sqlite3_close(db1);
+        Serial.println("User with ID " + String(data) + " has been deleted from the database.");
+        return 1;
+}
