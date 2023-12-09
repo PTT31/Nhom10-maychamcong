@@ -16,4 +16,4 @@ int openDb(const char *filename, sqlite3 **db);
 int db_exec(sqlite3 *db, const char *sql);
 int db_query(int data,User_if *user);
 int db_insert(uint8_t id,String name,String role);
-int db_delete(char *data,User_if *user);
+int db_delete(String data);

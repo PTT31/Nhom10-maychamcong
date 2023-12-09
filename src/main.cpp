@@ -458,7 +458,7 @@ void handleCheckDelID(AsyncWebServerRequest *request) {
       deleteFinger(idToDelete);
       
       // Xóa dữ liệu khỏi cơ sở dữ liệu của bạn ở đây
-      bool success = deleteData(nameValue); // Ví dụ: hàm xóa dữ liệu với số nhận được
+      bool success = db_delete(nameValue); // Ví dụ: hàm xóa dữ liệu với số nhận được
 
       if (success) {
         request->send(200, "text/plain", "Data with number " + nameValue + " deleted successfully");
