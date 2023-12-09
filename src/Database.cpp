@@ -1,4 +1,4 @@
-#include "sd_.h"
+#include "Database.h"
 // char *zErrMsg = 0;
 // const char *data = "Callback function called";
 int rc;
@@ -82,7 +82,7 @@ int db_query(int data, User_if *user)
     }
 }
 // Thêm user
-int db_insert(char *id, char *name, char *role)
+int db_insert(uint8_t id, String name, String role)
 {
     sqlite3 *db1;
     sqlite3_stmt *res;

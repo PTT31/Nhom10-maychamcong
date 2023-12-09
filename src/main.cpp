@@ -1,4 +1,4 @@
-#include "sd_.h" // Thư viện để làm việc với thẻ SD
+#include "Database.h" // Thư viện để làm việc với thẻ SD
 #include "lcd.h"
 #include "RTClib.h"               // Thư viện để làm việc với module RTC DS1307
 #include <Adafruit_Fingerprint.h> // Thư viện để làm việc với cảm biến vân tay
@@ -401,12 +401,13 @@ void TaskInternet(void *pvParameters)
 
 void checkAddID(AsyncWebServerRequest *request) {
     if (request->hasParam("name") && request->hasParam("position")) {
-        AsyncWebParameter* name = request->getParam("name");
-        AsyncWebParameter* position = request->getParam("position");
+        String name = request->getParam("name")->value();
+        String position = request->getParam("position")->value();
 
         uint8_t emptyID = findEmptyID(); // Tìm ID trống
-        if (emptyID != 0xFF) { // Kiểm tra xem có ID trống không
+        if (emptyID != -1) { // Kiểm tra xem có ID trống không
             enrollFingerprint(emptyID); // Nạp vân tay vào ID trống
+            db_insert(emptyID,name , position);
             request->send(200, "text/plain", "Fingerprint loaded successfully");
         } else {
             request->send(404, "text/plain", "Full sensor memory. Fingerprints cannot be added anymore");
