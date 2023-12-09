@@ -335,6 +335,16 @@ void setupServer()
         } else {
             request->send(400, "text/plain", "Missing parameters");
         } });
+        server.on("/checkID",HTTP_POST,[](AsyncWebServerRequest *request)
+              {
+        if (request->hasParam("name", true) && request->hasParam("position", true)) {
+            String name = request->getParam("name", true)->value();
+            String position = request->getParam("position", true)->value();
+            saveWiFiCredentials(name.c_str(), position.c_str());
+            request->send(200, "text/plain", "Save user to database");
+        } else {
+            request->send(400, "text/plain", "Missing parameters");
+        } });
     server.begin();
 }
 void TaskInternet(void *pvParameters)
