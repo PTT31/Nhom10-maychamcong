@@ -3,18 +3,26 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>ADD ID</title>
+        <title>DELETE ID</title>
         <style>
             body {
                 background-color: #f2f2f2;
                 font-family: Arial, Helvetica, sans-serif;
                 font-size: 16px;
-                color: #000088;
+                color: #333;
                 margin: 0;
-                padding: 20px;
+                padding: 0;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                height: 100vh;
+            }
+            .container {
+                width: 300px;
+                text-align: center;
             }
             h1 {
-                text-align: center;
+                margin-top: 20px;
             }
             input {
                 width: calc(100% - 20px);
@@ -24,6 +32,8 @@
                 border: 1px solid #ccc;
                 font-size: 16px;
                 box-sizing: border-box;
+                display: block;
+                margin: 0 auto;
             }
             button,
             a button {
@@ -33,11 +43,11 @@
                 border: none;
                 border-radius: 5px;
                 cursor: pointer;
-                text-decoration: none;
-                display: inline-block;
-                margin-top: 10px;
                 font-size: 16px;
                 transition: background-color 0.3s ease;
+                display: block;
+                margin: 0 auto;
+                text-decoration: none;
             }
             button:hover,
             a button:hover {
@@ -46,12 +56,13 @@
         </style>
     </head>
     <body>
-        <h1>Enter new ID</h1>
-        <form name='params' method='GET' action='checkAddID'>
-            Name: <input type='text' name='name' required/><br>
-            Position: <input type='text' name='position' required/><br>
-            <button type='submit'>SEND</button>
-        </form>
-        <a href='/'><button>Return to home page</button></a><br>
+        <div class='container'>
+            <h1>Delete fingerprint</h1>
+            <form name='params' method='GET' action='handleCheckDelID'>
+                Name: <input type='text' name='from' required/><br>
+                <button type='submit'>SEND</button><br>
+            </form>
+            <a href='/'><button>Return to home page</button></a><br>
+        </div>
     </body>
 </html>
