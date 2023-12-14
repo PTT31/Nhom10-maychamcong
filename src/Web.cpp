@@ -3,6 +3,7 @@
 #include "finger.h"
 #include "lcd.h"
 
+extern message_lcd mess;
 AsyncWebServer server(80);
 void notFound(AsyncWebServerRequest *request)
 {
@@ -164,9 +165,9 @@ uint8_t checkAddID(Adafruit_Fingerprint finger, AsyncWebServerRequest *request)
         if (emptyID != -1)
         {
             db_insert(emptyID, name, position); // Them van tay vao Database
-            // mess.mode = Insert_finger;
+            mess.mode = Insert_finger;
             enrollFingerprint(finger, emptyID); // Nạp vân tay vào ID trống
-            // mess.noti = "Insert " + name + "id: " + emptyID;
+            mess.noti = "Insert " + name + "id: " + emptyID;
             request->send(200, "text/plain", "Fingerprint loaded successfully");
         }
         else

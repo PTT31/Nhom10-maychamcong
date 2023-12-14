@@ -1,5 +1,6 @@
 #include "finger.h"
 #include "lcd.h"
+extern message_lcd mess;
 void beep(long time)
 {
     digitalWrite(PinBuzz, 1);
@@ -59,20 +60,20 @@ void enrollFingerprint(Adafruit_Fingerprint finger,uint8_t id)
     if (p != FINGERPRINT_OK)
     {
         Serial.println("Lỗi khi đọc hình ảnh");
-        // message.mode = Incorrect_finger;
+        mess.mode = Incorrect_finger;
         return;
     }
     p = finger.image2Tz();
     if (p != FINGERPRINT_OK)
     {
-        // message.mode = Incorrect_finger;
+        mess.mode = Incorrect_finger;
         Serial.println("Lỗi khi chuyển đổi hình ảnh");
         return;
     }
     p = finger.createModel();
     if (p != FINGERPRINT_OK)
     {
-        // message.mode = Incorrect_finger;
+        mess.mode = Incorrect_finger;
         Serial.println("Lỗi khi tạo mô hình");
         return;
     }
