@@ -4,8 +4,6 @@ message_lcd mess;
 LCD u8g2;
 unsigned long startTime = millis();
 unsigned long delayTime = 5000; // 5 giây
-unsigned long startTime_f = millis();
-unsigned long delayTime_f = 5000; // 5 giây
 void drawTime(LCD u8g2)
 {
     DateTime now;
