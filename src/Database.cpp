@@ -13,9 +13,9 @@ int rc;
 //     Serial.printf("\n");
 //     return 0;
 // }
-// int openDb(const char *filename, sqlite3 **db)
+// int openDb(sqlite3 **db)
 // {
-//     int rc = sqlite3_open(filename, db);
+//     int rc = sqlite3_open(USER_DB, db);
 //     if (rc)
 //     {
 //         Serial.printf("Can't open database: %s\n", sqlite3_errmsg(*db));
@@ -92,29 +92,31 @@ int db_insert(uint8_t id, String name, String role)
     // In chuỗi SQL lên Serial Monitor
     snprintf(sqlInsert, bufferSize, "INSERT INTO users (name,finger_id, role) VALUES (%s, %s, %s)", NULL, id, name, role);
     Serial.println(sqlInsert);
-    openDb(USER_DB, &db1);
+    sqlite3_open(USER_DB, &db1);
     rc = sqlite3_prepare_v2(db1, sqlInsert, -1, &res, NULL);
+
+    sqlite3_finalize(res); // Cleanup
     sqlite3_close(db1);
     return 1;
 }
 // //xóa user
-int db_delete(String data){
+int db_delete(String data)
+{
 
-        // Đọc dữ liệu từ cổng serial
-        sqlite3 *db1;
-        const int bufferSize = 64; // Kích thước tối đa của chuỗi char
-        char sqlQuery[bufferSize]; // Mảng char để lưu trữ chuỗi SQL
-        snprintf(sqlQuery, bufferSize, "DELETE FROM user WHERE finger_id = %s", data);
-        Serial.println(sqlQuery);
-        openDb(USER_DB, &db1);
-        rc = db_exec(db1, sqlQuery);
-        if (rc != SQLITE_OK)
-        {
-            sqlite3_close(db1);
-            return 0;
-        }
+    // Đọc dữ liệu từ cổng serial
+    sqlite3 *db1;
+    const int bufferSize = 64; // Kích thước tối đa của chuỗi char
+    char sqlQuery[bufferSize]; // Mảng char để lưu trữ chuỗi SQL
+    snprintf(sqlQuery, bufferSize, "DELETE FROM user WHERE finger_id = %s", data);
+    Serial.println(sqlQuery);
+    sqlite3_open(USER_DB, &db1);
+    rc = db_exec(db1, sqlQuery);
+    if (rc != SQLITE_OK)
+    {
         sqlite3_close(db1);
-        Serial.println("User with ID " + String(data) + " has been deleted from the database.");
-        return 1;
+        return 0;
+    }
+    sqlite3_close(db1);
+    Serial.println("User with ID " + String(data) + " has been deleted from the database.");
+    return 1;
 }
-

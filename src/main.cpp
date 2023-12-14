@@ -9,7 +9,7 @@
 #include "ESPAsyncWebServer.h"    // Thư viện ESPAsyncWebServer
 #include <SPIFFS.h>
 #include "FS.h"
-#define mySerial Serial2     // Sử dụng Serial2 cho cảm biến vân tay
+#define mySerial Serial2 // Sử dụng Serial2 cho cảm biến vân tay
 
 #define HSPI_MISO 19
 #define HSPI_MOSI 5
@@ -55,6 +55,7 @@ int Finger_s(LCD finger);  // Hàm để đọc ID từ cảm biến vân tay'
 void beep(long time);      // Hàm còi beep
 void enrollFingerprint(uint8_t id);
 int findEmptyID();
+void deleteFinger(uint8_t idToDelete);
 void drawTime(LCD u8g2)
 {
     DateTime now;
@@ -116,6 +117,7 @@ int Finger_s(Adafruit_Fingerprint finger)
         startTime = millis();
         Serial.println("Not finger dettec");
         return -1;
+        beep(200);
     }
     // found a match!
     Serial.print("Found ID #");
@@ -217,7 +219,10 @@ void loop()
             // u8g2.drawFile(0, 40, "/bin/Correct_finger.bin");
             break;
         case Insert_finger:
-            // u8g2.drawFile(0, 40, "/bin/Insert_finger.bin");
+            u8g2.setCursor(0, 24); // Đặt vị trí để in tên
+            u8g2.print("Finger Insert");
+            u8g2.setCursor(0, 36);
+            u8g2.print(message.noti);
             break;
         case Incorrect_finger:
             u8g2.setCursor(0, 24); // Đặt vị trí để in tên
@@ -265,12 +270,125 @@ void beep(long time)
     digitalWrite(14, 0);
 }
 
-
-
 AsyncWebServer server(80);
 void notFound(AsyncWebServerRequest *request)
 {
     request->send(404, "text/plain", "Not found");
+}
+void handleWebQuery(AsyncWebServerRequest *request, String sql)
+{
+    String temp;
+    int sec = millis() / 1000;
+    int min = sec / 60;
+    int hr = min / 60;
+
+    temp = "<html><head>\
+      <title>ESP32 Demo</title>\
+      <style>\
+      body { background-color: #cccccc; font-family: Arial, Helvetica, Sans-Serif; font-size: large; Color: #000088; }\
+      </style>\
+  </head>\
+  <body>\
+      <h1>Hello from ESP32!</h1>\
+      <p>Uptime: ";
+    temp += hr;
+    temp += ":";
+    temp += min % 60;
+    temp += ":";
+    temp += sec % 60;
+    temp += "</p>\
+      <h2>Query gendered names database</h2>\
+      <form name='params' method='GET' action='/query_db'>\
+      Enter from: <input type=text style='font-size: large' value='Pham' name='from'/> \
+      <br>to: <input type=text style='font-size: large' value='PhamTung' name='to'/> \
+      <br><br><input type=submit style='font-size: large' value='Query database'/>\
+      </form>\
+  </body>\
+  </html>";
+    request->send(200, "text/html", temp);
+}
+
+void WebQueryprocess(AsyncWebServerRequest *request)
+{
+    sqlite3 *db1;
+    sqlite3_stmt *res;
+    const char *tail;
+    int rec_count = 0;
+    String sql = "Select count(*) from users where name between '";
+    sql += request->getParam("from", true)->value();
+    sql += "' and '";
+    sql += request->getParam("to", true)->value();
+    sql += "'";
+    int rc = sqlite3_open(USER_DB, &db1);
+    rc = sqlite3_prepare_v2(db1, sql.c_str(), -1, &res, &tail);
+    if (rc != SQLITE_OK)
+    {
+        String resp = "Failed to fetch data: ";
+        resp += sqlite3_errmsg(db1);
+        resp += ".<br><br><input type=button onclick='location.href=\"/\"' value='back'/>";
+        request->send(200, "text/html", resp);
+        Serial.println(resp.c_str());
+        sqlite3_finalize(res);
+        sqlite3_close(db1);
+        return;
+    }
+    while (sqlite3_step(res) == SQLITE_ROW)
+    {
+        rec_count = sqlite3_column_int(res, 0);
+        if (rec_count > 5000)
+        {
+            String resp = "Too many records: ";
+            resp += rec_count;
+            resp += ". Please select different range";
+            resp += ".<br><br><input type=button onclick='location.href=\"/\"' value='back'/>";
+            request->send(200, "text/html", resp.c_str());
+            Serial.println(resp.c_str());
+            sqlite3_finalize(res);
+            return;
+        }
+    }
+    sqlite3_finalize(res);
+    sql = "Select * from users where name between'";
+    sql += request->getParam("from", true)->value();
+    sql += "' and '";
+    sql += request->getParam("to", true)->value();
+    sql += "'";
+    rc = sqlite3_prepare_v2(db1, sql.c_str(), -1, &res, &tail);
+    if (rc != SQLITE_OK)
+    {
+        String resp = "Failed to fetch data: ";
+        resp += sqlite3_errmsg(db1);
+        resp += ".<br><br><input type=button onclick='location.href=\"/\"' value='back'/>";
+        request->send(200, "text/html", resp.c_str());
+        Serial.println(resp.c_str());
+        return;
+    }
+    rec_count = 0;
+    String resp = "<html><head><title>ESP32 Sqlite local database query through web server</title>\
+          <style>\
+          body { background-color: #cccccc; font-family: Arial, Helvetica, Sans-Serif; font-size: large; Color: #000088; }\
+          </style><head><body><h1>ESP32 Sqlite local database query through web server</h1><h2>";
+    resp += sql;
+    resp += "</h2><br><table cellspacing='1' cellpadding='1' border='1'><tr><td>finger_id</td><td>Name</td>";
+    request->send(200, "text/html", resp.c_str());
+    while (sqlite3_step(res) == SQLITE_ROW)
+    {
+        resp = "<tr><td>";
+        resp += sqlite3_column_int(res, 0);
+        resp += "</td><td>";
+        resp += (const char *)sqlite3_column_text(res, 1);
+        resp += "</td><td>";
+        resp += (const char *)sqlite3_column_text(res, 2);
+        resp += "</td><td>";
+        request->send(200, "text/html", resp);
+        rec_count++;
+    }
+    resp = "</table><br><br>Number of records: ";
+    resp += rec_count;
+    resp += ".<br><br><input type=button onclick='location.href=\"/\"' value='back'/>";
+    request->send(200, "text/html", resp);
+    sqlite3_finalize(res);
+    sqlite3_close(db1);
 }
 
 bool saveWiFiCredentials(const char *ssid, const char *password)
@@ -336,7 +454,11 @@ void setupServer()
         } else {
             request->send(400, "text/plain", "Missing parameters");
         } });
-        server.on("/checkID",HTTP_POST,[](AsyncWebServerRequest *request)
+    server.on("/webconsole", HTTP_GET, [](AsyncWebServerRequest *request)
+              { handleWebQuery(request, ""); });
+    server.on("/query_db", HTTP_POST, [](AsyncWebServerRequest *request)
+              { WebQueryprocess(request); });
+    server.on("/checkID", HTTP_POST, [](AsyncWebServerRequest *request)
               {
         if (request->hasParam("name", true) && request->hasParam("position", true)) {
             String name = request->getParam("name", true)->value();
@@ -397,82 +519,121 @@ void TaskInternet(void *pvParameters)
         vTaskDelay(pdMS_TO_TICKS(1000));
     }
 }
+void deleteFinger(uint8_t idToDelete)
+{
+    if (finger.deleteModel(idToDelete))
+    {
+        Serial.println("Deleted!");
+    }
+    else
+    {
+        Serial.println("Failed to delete");
+    }
+}
 
-
-void checkAddID(AsyncWebServerRequest *request) {
-    if (request->hasParam("name") && request->hasParam("position")) {
+void checkAddID(AsyncWebServerRequest *request)
+{
+    if (request->hasParam("name") && request->hasParam("position"))
+    {
         String name = request->getParam("name")->value();
         String position = request->getParam("position")->value();
 
         uint8_t emptyID = findEmptyID(); // Tìm ID trống
-        if (emptyID != -1) { // Kiểm tra xem có ID trống không
-            db_insert(emptyID,name , position); //Them van tay vao Database
+        if (emptyID != -1)
+        {
+            xSemaphoreTake(spiMutex, portMAX_DELAY);
+            db_insert(emptyID, name, position); // Them van tay vao Database
+            xSemaphoreGive(spiMutex);
+            message.mode = Insert_finger;
             enrollFingerprint(emptyID); // Nạp vân tay vào ID trống
+            message.noti = "Insert " + name + "id: " + emptyID;
             request->send(200, "text/plain", "Fingerprint loaded successfully");
-        } else {
+        }
+        else
+        {
             request->send(404, "text/plain", "Full sensor memory. Fingerprints cannot be added anymore");
         }
     }
 }
 
-int findEmptyID() {
-    for (uint8_t id = 1; id <= 162; id++) { // Duyệt qua các ID từ 1 đến 162
-        if (finger.loadModel(id) != FINGERPRINT_OK) { // Kiểm tra xem ID đã được sử dụng chưa
+int findEmptyID()
+{
+    for (uint8_t id = 1; id <= 162; id++)
+    { // Duyệt qua các ID từ 1 đến 162
+        if (finger.loadModel(id) != FINGERPRINT_OK)
+        { // Kiểm tra xem ID đã được sử dụng chưa
             return id;
         }
     }
-    return -1; 
+    return -1;
 }
-void enrollFingerprint(uint8_t id){
+void enrollFingerprint(uint8_t id)
+{
     uint8_t p = finger.getImage();
-    if (p != FINGERPRINT_OK) {
+    if (p != FINGERPRINT_OK)
+    {
         Serial.println("Lỗi khi đọc hình ảnh");
+        message.mode = Incorrect_finger;
         return;
     }
     p = finger.image2Tz();
-    if (p != FINGERPRINT_OK) {
+    if (p != FINGERPRINT_OK)
+    {
+        message.mode = Incorrect_finger;
         Serial.println("Lỗi khi chuyển đổi hình ảnh");
         return;
     }
     p = finger.createModel();
-    if (p != FINGERPRINT_OK) {
+    if (p != FINGERPRINT_OK)
+    {
+        message.mode = Incorrect_finger;
         Serial.println("Lỗi khi tạo mô hình");
         return;
     }
     p = finger.storeModel(id);
-    if (p != FINGERPRINT_OK) {
-        Serial.println("Lỗi khi lưu trữ mô hình");
-        return;
-    }
 }
-void handleCheckDelID(AsyncWebServerRequest *request) {
-  String nameValue;
 
-  if (request->hasParam("from")) {
-    nameValue = request->hasParam("from");
-    uint8_t id = isIDPresent(nameValue);
-    // Kiểm tra xem ID có tồn tại hay không
-    if (id != NULL) {
-      // Xóa dữ liệu từ cảm biến vân tay
-      int idToDelete = id;
-      deleteFinger(idToDelete);
-      
-      // Xóa dữ liệu khỏi cơ sở dữ liệu của bạn ở đây
-      bool success = db_delete(nameValue); // Ví dụ: hàm xóa dữ liệu với số nhận được
-
-      if (success) {
-        request->send(200, "text/plain", "Data with number " + nameValue + " deleted successfully");
-      } else {
-        request->send(500, "text/plain", "Failed to delete data");
-      }
-    } else {
-      // Nếu ID không tồn tại, gửi thông báo tương ứng
-      request->send(200, "text/plain", "ID not found");
-    }
-  } else {
-    request->send(400, "text/plain", "No 'id' value provided");
-  }
+uint8_t isIDPresent(String nameValue)
+{
+    return 0;
 }
-bool isIDPresent(String nameValue){
 
+void handleCheckDelID(AsyncWebServerRequest *request)
+{
+    String nameValue;
+
+    if (request->hasParam("from"))
+    {
+        nameValue = request->hasParam("from");
+        uint8_t id = isIDPresent(nameValue);
+        // Kiểm tra xem ID có tồn tại hay không
+        if (id != 0)
+        {
+            // Xóa dữ liệu từ cảm biến vân tay
+            int idToDelete = id;
+            deleteFinger(idToDelete);
+
+            // Xóa dữ liệu khỏi cơ sở dữ liệu của bạn ở đây
+            xSemaphoreTake(spiMutex, portMAX_DELAY);
+            bool success = db_delete(nameValue); // Ví dụ: hàm xóa dữ liệu với số nhận được
+            xSemaphoreGive(spiMutex);
+            if (success)
+            {
+                request->send(200, "text/plain", "Data with number " + nameValue + " deleted successfully");
+            }
+            else
+            {
+                request->send(500, "text/plain", "Failed to delete data");
+            }
+        }
+        else
+        {
+            // Nếu ID không tồn tại, gửi thông báo tương ứng
+            request->send(200, "text/plain", "ID not found");
+        }
+    }
+    else
+    {
+        request->send(400, "text/plain", "No 'id' value provided");
+    }
 }
