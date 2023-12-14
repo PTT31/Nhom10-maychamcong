@@ -1,10 +1,4 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <sqlite3.h>
-#include <SPI.h>
-#include <FS.h>
-#include "SD.h"
-
+#include "include.h"
 #define USER_DB "/sd/Database/User.db"
 class User_if {
 public:
