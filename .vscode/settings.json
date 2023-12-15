@@ -9,5 +9,6 @@
         "type_traits": "cpp",
         "utility": "cpp"
     },
-    "C_Cpp.errorSquiggles": "enabled"
+    "C_Cpp.errorSquiggles": "enabled",
+    "cmake.sourceDirectory": "D:/DACS/SD_FreeRtos/.pio/libdeps/esp32dev/Adafruit BusIO"
 }
