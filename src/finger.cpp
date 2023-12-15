@@ -1,6 +1,7 @@
 #include "finger.h"
 #include "lcd.h"
 extern message_lcd mess;
+extern unsigned long startTime;
 void beep(long time)
 {
     digitalWrite(PinBuzz, 1);
@@ -21,8 +22,10 @@ int Finger_s(Adafruit_Fingerprint finger)
     if (p != FINGERPRINT_OK)
     {
         Serial.println("Not finger dettec");
-        return -1;
+        mess.mode = Incorrect_finger;
+        startTime = millis();
         beep(200);
+        return -1;
     }
     // found a match!
     Serial.print("Found ID #");

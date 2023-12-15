@@ -102,51 +102,7 @@ void setup()
 void loop()
 {
     int finger_id = -1;
-    // if (millis() - startTime_f > delayTime_f)
-    // {
-    //     
-    // }
-    u8g2.clearDisplay();
-    u8g2.firstPage();
-    do
-    {
-        drawTime(u8g2);
-        u8g2.setFont(u8g2_font_timB10_tr);
-        u8g2.setCursor(0, 60); // Đặt vị trí để in tên
-        u8g2.print(mess.ip);
-        switch (mess.mode)
-        {
-        case Scan_finger:
-            u8g2.setCursor(0, 24); // Đặt vị trí để in tên
-            u8g2.print("Welcome to Haui");
-            u8g2.setCursor(0, 36);           // Đặt vị trí để in tên
-            u8g2.print("Please put finger"); // In tên lên màn hình
-            u8g2.setCursor(0, 48);
-            u8g2.print("on sensor");
-            finger_id = Finger_s(finger);
-            break;
-        case Correct_finger:
-            u8g2.setCursor(0, 24); // Đặt vị trí để in tên
-            u8g2.print("Welcome to Haui");
-            u8g2.setCursor(0, 36);    // Đặt vị trí để in tên
-            u8g2.print(mess.noti); // In tên lên màn hình
-            // u8g2.drawFile(0, 40, "/bin/Correct_finger.bin");
-            break;
-        case Insert_finger:
-            u8g2.setCursor(0, 24); // Đặt vị trí để in tên
-            u8g2.print("Finger Insert");
-            u8g2.setCursor(0, 36);
-            u8g2.print(mess.noti);
-            break;
-        case Incorrect_finger:
-            u8g2.setCursor(0, 24); // Đặt vị trí để in tên
-            u8g2.print("Scan again");
-            break;
-        default:
-            break;
-        }
-    } while (u8g2.nextPage());
-    // int ret = xQueueReceive(QueueHandle, &finger_id, 0);
+    finger_id = Finger_s(finger);
     if (finger_id != -1)
     {
         Serial.println(xPortGetFreeHeapSize());
@@ -169,15 +125,55 @@ void loop()
             startTime = millis();
         }
     }
-    if (mess.mode != Scan_finger && (millis() - startTime > delayTime))
+    if ((mess.mode != Scan_finger && (millis() - startTime > delayTime)))
     {
         mess.noti = "";
         mess.mode = Scan_finger;
     }
+    u8g2.clearDisplay();
+    u8g2.firstPage();
+    do
+    {
+        drawTime(u8g2);
+        u8g2.setFont(u8g2_font_timB10_tr);
+        u8g2.setCursor(0, 60); // Đặt vị trí để in tên
+        u8g2.print(mess.ip);
+        switch (mess.mode)
+        {
+        case Scan_finger:
+            u8g2.setCursor(0, 24); // Đặt vị trí để in tên
+            u8g2.print("Welcome to Haui");
+            u8g2.setCursor(0, 36);           // Đặt vị trí để in tên
+            u8g2.print("Please put finger"); // In tên lên màn hình
+            u8g2.setCursor(0, 48);
+            u8g2.print("on sensor");
+
+            break;
+        case Correct_finger:
+            u8g2.setCursor(0, 24); // Đặt vị trí để in tên
+            u8g2.print("Welcome to Haui");
+            u8g2.setCursor(0, 36); // Đặt vị trí để in tên
+            u8g2.print(mess.noti); // In tên lên màn hình
+            // u8g2.drawFile(0, 40, "/bin/Correct_finger.bin");
+            break;
+        case Insert_finger:
+            u8g2.setCursor(0, 24); // Đặt vị trí để in tên
+            u8g2.print("Finger Insert");
+            u8g2.setCursor(0, 36);
+            u8g2.print(mess.noti);
+            break;
+        case Incorrect_finger:
+            u8g2.setCursor(0, 24); // Đặt vị trí để in tên
+            u8g2.print("Scan again");
+            break;
+        default:
+            break;
+        }
+    } while (u8g2.nextPage());
+    // int ret = xQueueReceive(QueueHandle, &finger_id, 0);
+
     vTaskDelay(pdMS_TO_TICKS(500)); // Đợi 1 giây trước khi lặp lại nhiệm vụ
 }
-
-
 
 void TaskInternet(void *pvParameters)
 {
@@ -228,8 +224,3 @@ void TaskInternet(void *pvParameters)
         vTaskDelay(pdMS_TO_TICKS(1000));
     }
 }
-
-
-
-
-
