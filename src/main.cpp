@@ -194,7 +194,7 @@ void TaskInternet(void *pvParameters)
         Serial.print("Wifi STA");
         WiFi.softAP("Mcc-Nhom10");
         mess.ip = "Mcc-Nhom10";
-        setupServer(finger);
+        setupServer();
     }
     else
     {
@@ -210,7 +210,7 @@ void TaskInternet(void *pvParameters)
         timeClient.update();
         rtc.adjust(DateTime(timeClient.getEpochTime()));
         mess.ip = WiFi.localIP().toString();
-        setupServer(finger);
+        setupServer();
     }
     while (1)
     {

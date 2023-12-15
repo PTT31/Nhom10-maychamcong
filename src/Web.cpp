@@ -5,13 +5,14 @@
 
 extern message_lcd mess;
 extern unsigned long startTime;
+extern Adafruit_Fingerprint finger;
 AsyncWebServer server(80);
 void notFound(AsyncWebServerRequest *request)
 {
     request->send(404, "text/plain", "Not found");
 }
 
-void setupServer(Adafruit_Fingerprint finger)
+void setupServer()
 {
     server.serveStatic("/", SD, "/Web/");
     server.on("/save", HTTP_POST, [](AsyncWebServerRequest *request)
@@ -32,8 +33,8 @@ void setupServer(Adafruit_Fingerprint finger)
               { WebQueryprocess(request); });
     // server.on("/addID", HTTP_POST, [finger](AsyncWebServerRequest *request)
     //           { checkAddID(finger,request); });
-    server.on("/addid", HTTP_POST, [finger](AsyncWebServerRequest *request)
-              { checkAddID(finger, request); });
+    server.on("/addid", HTTP_POST, [](AsyncWebServerRequest *request)
+              { checkAddID(request); });
     server.begin();
 }
 void handleWebQuery(AsyncWebServerRequest *request)
@@ -157,28 +158,37 @@ void WebQueryprocess(AsyncWebServerRequest *request)
     sqlite3_close(db1);
 }
 
-uint8_t checkAddID(Adafruit_Fingerprint finger, AsyncWebServerRequest *request)
+uint8_t checkAddID( AsyncWebServerRequest *request)
 {
     if (request->hasParam("name",true) && request->hasParam("position",true))
     {
         String name = request->getParam("name",true)->value();
         String position = request->getParam("position",true)->value();
+        Serial.print(name);
+        Serial.print(position);
         uint8_t emptyID = findEmptyID(finger); // Tìm ID trống
+        Serial.print("B1");
+        Serial.print(emptyID);
         if (emptyID != -1)
         {
             mess.mode = Insert_finger;
+             Serial.println("B1");
             db_insert(emptyID, name, position); // Them van tay vao Database
+            Serial.println("B1");
             enrollFingerprint(finger, emptyID); // Nạp vân tay vào ID trống
+             Serial.println("B1");
             mess.noti = "Insert " + name + "id: " + emptyID;
+             Serial.println("B1");
             startTime = millis() - 200000;
             request->send(200, "text/plain", "Fingerprint loaded successfully");
+                    return 1;
         }
         else
         {
             request->send(404, "text/plain", "Full sensor memory. Fingerprints cannot be added anymore");
             return 0;
         }
-        return 1;
+
     }
     else
     {
@@ -186,7 +196,7 @@ uint8_t checkAddID(Adafruit_Fingerprint finger, AsyncWebServerRequest *request)
         return 0;
     }
 }
-void handleCheckDelID(Adafruit_Fingerprint finger, AsyncWebServerRequest *request)
+void handleCheckDelID( AsyncWebServerRequest *request)
 {
     String nameValue;
 
