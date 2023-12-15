@@ -90,7 +90,7 @@ int db_insert(uint8_t id, String name, String role)
     const int bufferSize = 64;  // Kích thước tối đa của chuỗi char
     char sqlInsert[bufferSize]; // Mảng char để lưu trữ chuỗi SQL
     // In chuỗi SQL lên Serial Monitor
-    snprintf(sqlInsert, bufferSize, "INSERT INTO users (name,finger_id, role) VALUES (%s, %s, %s)", NULL, id, name, role);
+    snprintf(sqlInsert, bufferSize, "INSERT INTO users (finger_id,name,role) VALUES (%s, %s, %s)", id, name, role);
     Serial.println(sqlInsert);
     sqlite3_open(USER_DB, &db1);
     rc = sqlite3_prepare_v2(db1, sqlInsert, -1, &res, NULL);
