@@ -54,33 +54,28 @@ int findEmptyID(Adafruit_Fingerprint finger)
     }
     return -1;
 }
-void enrollFingerprint(Adafruit_Fingerprint finger,uint8_t id)
-{
+void enrollFingerprint(Adafruit_Fingerprint finger, uint8_t id) {
     uint8_t p = finger.getImage();
-    if (p != FINGERPRINT_OK)
-    {
+    if (p != FINGERPRINT_OK) {
         Serial.println("Lỗi khi đọc hình ảnh");
         mess.mode = Incorrect_finger;
         return;
     }
     p = finger.image2Tz();
-    if (p != FINGERPRINT_OK)
-    {
+    if (p != FINGERPRINT_OK) {
         mess.mode = Incorrect_finger;
         Serial.println("Lỗi khi chuyển đổi hình ảnh");
         return;
     }
     p = finger.createModel();
-    if (p != FINGERPRINT_OK)
-    {
+    if (p != FINGERPRINT_OK) {
         mess.mode = Incorrect_finger;
         Serial.println("Lỗi khi tạo mô hình");
         return;
     }
     p = finger.storeModel(id);
-}
-
-uint8_t isIDPresent(Adafruit_Fingerprint finger,String nameValue)
-{
-    return 0;
+    if (p != FINGERPRINT_OK) {
+        Serial.println("Lỗi khi lưu mô hình vân tay");
+        mess.mode = Incorrect_finger;
+    }
 }

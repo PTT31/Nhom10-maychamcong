@@ -186,14 +186,13 @@ void handleCheckDelID(Adafruit_Fingerprint finger, AsyncWebServerRequest *reques
     if (request->hasParam("from"))
     {
         nameValue = request->hasParam("from");
-        uint8_t id = isIDPresent(finger, nameValue);
+        uint8_t id = isIDPresent(nameValue);
         // Kiểm tra xem ID có tồn tại hay không
         if (id != 0)
         {
             // Xóa dữ liệu từ cảm biến vân tay
-            int idToDelete = id;
+            uint8_t idToDelete = id;
             deleteFinger(finger, idToDelete);
-
             // Xóa dữ liệu khỏi cơ sở dữ liệu của bạn ở đây
             bool success = db_delete(nameValue); // Ví dụ: hàm xóa dữ liệu với số nhận được
             if (success)

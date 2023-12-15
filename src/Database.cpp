@@ -90,7 +90,7 @@ int db_insert(uint8_t id, String name, String role)
     const int bufferSize = 64;  // Kích thước tối đa của chuỗi char
     char sqlInsert[bufferSize]; // Mảng char để lưu trữ chuỗi SQL
     // In chuỗi SQL lên Serial Monitor
-    snprintf(sqlInsert, bufferSize, "INSERT INTO users (name,finger_id, role) VALUES (%s, %s, %s)", NULL, id, name, role);
+    snprintf(sqlInsert, bufferSize, "INSERT INTO users (name,finger_id, role) VALUES (%d, %s, %s)", NULL, id, name, role);
     Serial.println(sqlInsert);
     sqlite3_open(USER_DB, &db1);
     rc = sqlite3_prepare_v2(db1, sqlInsert, -1, &res, NULL);
@@ -113,10 +113,38 @@ int db_delete(String data)
     rc = db_exec(db1, sqlQuery);
     if (rc != SQLITE_OK)
     {
+        Serial.println("Dont open database");
         sqlite3_close(db1);
         return 0;
     }
     sqlite3_close(db1);
     Serial.println("User with ID " + String(data) + " has been deleted from the database.");
     return 1;
+}
+uint8_t isIDPresent(String nameValue)
+{
+    sqlite3 *db;
+    sqlite3_stmt *res;
+    const int bufferSize = 64; // Kích thước tối đa của chuỗi char
+    char sqlQuery[bufferSize];
+    snprintf(sqlQuery, bufferSize, "SELECT * FROM users WHERE name = '%s'", nameValue.c_str());
+
+    rc = sqlite3_prepare_v2(db, sqlQuery, -1, &res, NULL);
+    if (rc != SQLITE_OK) {
+        Serial.println("Dont open database");
+        sqlite3_finalize(res);
+        sqlite3_close(db);
+        return -1;
+    }
+    uint8_t id;
+    if (sqlite3_step(res) == SQLITE_ROW) {
+        id = sqlite3_column_int(res, 0);
+        sqlite3_finalize(res);
+        sqlite3_close(db);
+        return id;
+    } else {
+        sqlite3_finalize(res);
+        sqlite3_close(db);
+        return -1;
+    }
 }
