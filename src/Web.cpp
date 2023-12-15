@@ -4,6 +4,7 @@
 #include "lcd.h"
 
 extern message_lcd mess;
+extern unsigned long startTime;
 AsyncWebServer server(80);
 void notFound(AsyncWebServerRequest *request)
 {
@@ -29,8 +30,10 @@ void setupServer(Adafruit_Fingerprint finger)
               { handleWebQuery(request); });
     server.on("/query_db", HTTP_POST, [](AsyncWebServerRequest *request)
               { WebQueryprocess(request); });
-    server.on("/addID", HTTP_POST, [finger](AsyncWebServerRequest *request)
-              { checkAddID(finger,request); });
+    // server.on("/addID", HTTP_POST, [finger](AsyncWebServerRequest *request)
+    //           { checkAddID(finger,request); });
+    server.on("/addid", HTTP_POST, [finger](AsyncWebServerRequest *request)
+              { checkAddID(finger, request); });
     server.begin();
 }
 void handleWebQuery(AsyncWebServerRequest *request)
@@ -156,18 +159,18 @@ void WebQueryprocess(AsyncWebServerRequest *request)
 
 uint8_t checkAddID(Adafruit_Fingerprint finger, AsyncWebServerRequest *request)
 {
-    if (request->hasParam("name") && request->hasParam("position"))
+    if (request->hasParam("name",true) && request->hasParam("position",true))
     {
-        String name = request->getParam("name")->value();
-        String position = request->getParam("position")->value();
-
+        String name = request->getParam("name",true)->value();
+        String position = request->getParam("position",true)->value();
         uint8_t emptyID = findEmptyID(finger); // Tìm ID trống
         if (emptyID != -1)
         {
-            db_insert(emptyID, name, position); // Them van tay vao Database
             mess.mode = Insert_finger;
+            db_insert(emptyID, name, position); // Them van tay vao Database
             enrollFingerprint(finger, emptyID); // Nạp vân tay vào ID trống
             mess.noti = "Insert " + name + "id: " + emptyID;
+            startTime = millis() - 200000;
             request->send(200, "text/plain", "Fingerprint loaded successfully");
         }
         else
@@ -177,7 +180,11 @@ uint8_t checkAddID(Adafruit_Fingerprint finger, AsyncWebServerRequest *request)
         }
         return 1;
     }
-    return 1;
+    else
+    {
+        request->send(404, "text/plain", "Fingerprints don't have params");
+        return 0;
+    }
 }
 void handleCheckDelID(Adafruit_Fingerprint finger, AsyncWebServerRequest *request)
 {
