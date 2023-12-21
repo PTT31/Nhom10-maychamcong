@@ -35,7 +35,7 @@ int Finger_s(Adafruit_Fingerprint finger)
     beep(500);
     return finger.fingerID;
 }
-void deleteFinger(Adafruit_Fingerprint finger,uint8_t idToDelete)
+uint8_t deleteFinger(Adafruit_Fingerprint finger,uint8_t idToDelete)
 {
     if (finger.deleteModel(idToDelete))
     {
@@ -46,39 +46,76 @@ void deleteFinger(Adafruit_Fingerprint finger,uint8_t idToDelete)
         Serial.println("Failed to delete");
     }
 }
-int findEmptyID(Adafruit_Fingerprint finger)
-{
-    for (uint8_t id = 1; id <= 162; id++)
-    { // Duyệt qua các ID từ 1 đến 162
-        if (finger.loadModel(id) != FINGERPRINT_OK)
-        { // Kiểm tra xem ID đã được sử dụng chưa
-            return id;
-        }
+int findEmptyID() {
+    File myFile = SD.open("fingerid.txt"); // Khai báo và mở file
+    if (myFile) {
+        String numberString = myFile.readStringUntil('\n'); // Đọc chuỗi từ file
+        myFile.close(); // Đóng file sau khi đọc xong
+        // Chuyển chuỗi sang số nguyên
+        int number = numberString.toInt();
+        return number;
+    } else {
+        Serial.println("Không thể mở file.");
+        return -1;
     }
-    return -1;
 }
-void enrollFingerprint(Adafruit_Fingerprint finger, uint8_t id) {
+void deleteNumberInFile(uint8_t numberToDelete) {
+    File myFile = SD.open("fingerid.txt", FILE_WRITE); // Mở file để ghi dữ liệu (append)
+
+    if (myFile) {
+        myFile.seek(0); // Di chuyển con trỏ về đầu file
+
+        while (myFile.available()) {
+            String numberString = myFile.readStringUntil('\n');
+            uint8_t number = numberString.toInt();
+
+            if (number != numberToDelete) {
+                myFile.println(number);
+            }
+        }
+        myFile.close(); // Đóng file sau khi hoàn thành
+    } else {
+        Serial.println("Không thể mở file.");
+    }
+}
+void addNumberInFile(uint8_t numberToAdd) {
+    File myFile = SD.open("fingerid.txt", FILE_WRITE);
+
+    if (myFile) {
+        myFile.seek(myFile.size()); // Di chuyển con trỏ đến cuối file
+
+        // Ghi số mới vào file
+        myFile.println(numberToAdd);
+
+        myFile.close(); // Đóng file sau khi ghi
+    } else {
+        Serial.println("Không thể mở file.");
+    }
+}
+uint8_t enrollFingerprint(Adafruit_Fingerprint finger, uint8_t id) {
     uint8_t p = finger.getImage();
     if (p != FINGERPRINT_OK) {
         Serial.println("Lỗi khi đọc hình ảnh");
         mess.mode = Incorrect_finger;
-        return;
+        return -1;
     }
     p = finger.image2Tz();
     if (p != FINGERPRINT_OK) {
         mess.mode = Incorrect_finger;
         Serial.println("Lỗi khi chuyển đổi hình ảnh");
-        return;
+        return -1;
     }
     p = finger.createModel();
     if (p != FINGERPRINT_OK) {
         mess.mode = Incorrect_finger;
         Serial.println("Lỗi khi tạo mô hình");
-        return;
+        return -1;
     }
     p = finger.storeModel(id);
     if (p != FINGERPRINT_OK) {
         Serial.println("Lỗi khi lưu mô hình vân tay");
         mess.mode = Incorrect_finger;
+        return -1;
     }
+    return 1;
 }

@@ -166,22 +166,25 @@ uint8_t checkAddID( AsyncWebServerRequest *request)
         String position = request->getParam("position",true)->value();
         Serial.print(name);
         Serial.print(position);
-        uint8_t emptyID = findEmptyID(finger); // Tìm ID trống
+        uint8_t emptyID = findEmptyID(); // Tìm ID trống
         Serial.print("B1");
         Serial.print(emptyID);
         if (emptyID != -1)
         {
             mess.mode = Insert_finger;
-             Serial.println("B1");
+            Serial.println("B1");
             db_insert(emptyID, name, position); // Them van tay vao Database
             Serial.println("B1");
-            enrollFingerprint(finger, emptyID); // Nạp vân tay vào ID trống
-             Serial.println("B1");
+            uint8_t enrollSuccess = enrollFingerprint(finger, emptyID) ; // Nạp vân tay vào ID trống
+            if (enrollSuccess != -1){
+                deleteNumberInFile(emptyID);
+            }
+            Serial.println("B1");
             mess.noti = "Insert " + name + "id: " + emptyID;
-             Serial.println("B1");
+            Serial.println("B1");
             startTime = millis() - 200000;
             request->send(200, "text/plain", "Fingerprint loaded successfully");
-                    return 1;
+            return 1;
         }
         else
         {
@@ -209,7 +212,10 @@ void handleCheckDelID( AsyncWebServerRequest *request)
         {
             // Xóa dữ liệu từ cảm biến vân tay
             uint8_t idToDelete = id;
-            deleteFinger(finger, idToDelete);
+            uint8_t enrollSuccess = deleteFinger(finger, idToDelete);
+            if (enrollSuccess != -1){
+                addNumberInFile(idToDelete);
+            }
             // Xóa dữ liệu khỏi cơ sở dữ liệu của bạn ở đây
             bool success = db_delete(nameValue); // Ví dụ: hàm xóa dữ liệu với số nhận được
             if (success)

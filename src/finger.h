@@ -1,6 +1,8 @@
 #include "include.h"
-int findEmptyID(Adafruit_Fingerprint finger);
+int findEmptyID();
 int Finger_s(Adafruit_Fingerprint finger);
-void enrollFingerprint(Adafruit_Fingerprint finger,uint8_t id);
-void deleteFinger(Adafruit_Fingerprint finger,uint8_t idToDelete);
+uint8_t enrollFingerprint(Adafruit_Fingerprint finger,uint8_t id);
+uint8_t deleteFinger(Adafruit_Fingerprint finger,uint8_t idToDelete);
 void beep(long time);
+void deleteNumberInFile(int numberToDelete);
+void addNumberInFile(uint8_t numberToAdd);
