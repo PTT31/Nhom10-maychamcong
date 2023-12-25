@@ -35,6 +35,8 @@ void setupServer()
     //           { checkAddID(finger,request); });
     server.on("/addid", HTTP_POST, [](AsyncWebServerRequest *request)
               { checkAddID(request); });
+    server.on("/download", HTTP_GET, [](AsyncWebServerRequest *request)
+              { handleFileDownload(request); } );
     server.begin();
 }
 void handleWebQuery(AsyncWebServerRequest *request)
@@ -278,4 +280,40 @@ bool readWiFiCredentials(char *ssid, char *password)
         return true;
     }
     return false;
+}
+#define FILE_CHUNK_SIZE 1024
+void handleFileDownload(AsyncWebServerRequest *request) {
+    File file;
+    size_t fileSize;
+    size_t sentSize = 0;
+    if (!file || !file.available()) {
+        file = SPIFFS.open("/file.txt");?????
+        if (!file) {
+            request->send(404, "text/plain", "File not found");
+            return;
+        }
+        fileSize = file.size();
+        sentSize = 0;
+    }
+
+    size_t chunkSize = min((size_t)FILE_CHUNK_SIZE, fileSize - sentSize);
+    if (chunkSize > 0) {
+        uint8_t *buffer = (uint8_t *)malloc(chunkSize);
+        if (buffer == NULL) {
+            request->send(500, "text/plain", "Server error");
+            return;
+        }
+
+        file.seek(sentSize);
+        file.read(buffer, chunkSize);
+        sentSize += chunkSize;
+
+        AsyncWebServerResponse *response = request->beginResponse_P(200, "application/octet-stream", buffer, chunkSize);
+        response->addHeader("Content-Disposition", "attachment; filename=\"file.txt\"");
+        request->send(response);
+
+        free(buffer);
+    } else {
+        file.close();
+    }
 }
