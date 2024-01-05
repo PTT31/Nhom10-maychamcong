@@ -6,18 +6,12 @@ unsigned long startTime = millis();
 unsigned long delayTime = 5000; // 5 giây
 void drawTime(LCD u8g2)
 {
-    DateTime now;
+    // DateTime now;
     u8g2.setFont(u8g2_font_timB10_tr);
     u8g2.setCursor(5, 12);
-    now = rtc.now();
-    String dateTimeString = String(now.month(), DEC) + '/' +
-                            String(now.day(), DEC) + '/' +
-                            String(now.year(), DEC) + ' ' +
-                            String(now.hour(), DEC) + ':' +
-                            String(now.minute(), DEC) + ':' +
-                            String(now.second(), DEC);
-
-    u8g2.print(dateTimeString);
+    // now = rtc.getTime();
+    // String dateTimeString = rtc.getTimeDate();
+    u8g2.print(rtc.getTimeDate());
 };
 void record(User_if user)
 {
@@ -25,11 +19,8 @@ void record(User_if user)
     File dataFile = SD.open("/record/Login.csv", FILE_APPEND); // Mở file để ghi thêm dữ liệu
     if (dataFile)
     {
-        DateTime now = rtc.now();
         char buffer[50]; // Dung lượng đủ lớn để lưu trữ dữ liệu
-        sprintf(buffer, " %d/%d/%d,%d:%d:%d,%s,%d",
-                now.month(), now.day(), now.year(),
-                now.hour(), now.minute(), now.second(),
+        sprintf(buffer, "%s,%s,%d", rtc.getTimeDate(),
                 user.name, user.finger_id);
         dataFile.println(buffer);
         dataFile.close();
@@ -55,8 +46,8 @@ void setup()
     {
         ; // wait for serial port to connect. Needed for native USB port only
     }
-    pinMode(14, OUTPUT);
-    digitalWrite(14, 0);
+    pinMode(BUZZ, OUTPUT);
+    digitalWrite(BUZZ, 0);
     beep(500);
     delay(500);
     SPI.begin(HSPI_SCLK, HSPI_MISO, HSPI_MOSI, HSPI_SS);
@@ -67,7 +58,7 @@ void setup()
     sqlite3_initialize();
     Serial.println("initialization done.");
     Wire.setPins(27, 26);
-    if (!rtc.begin())
+    if (!dsrtc.begin())
     {
         Serial.println("Couldn't find RTC");
         Serial.flush();
@@ -97,6 +88,20 @@ void setup()
     }
     Serial.print("QueueStart");
     xTaskCreatePinnedToCore(TaskInternet, "TaskInternet", 4000, NULL, 1, &taskitn, 0);
+    // Lấy thời gian từ NTP Server
+    // configTime(0, 0, "pool.ntp.org");
+    // rtc.updateTime();
+
+    // Cài đặt bộ hẹn giờ để cập nhật thời gian sau mỗi 12 giờ
+    timer = timerBegin(0, 80, true);
+    timerAttachInterrupt(timer, &onTimer, true);
+    timerAlarmWrite(timer, 43200000000, true); // 12 giờ (12 * 60 * 60 * 1000 * 1000)
+    timerAlarmEnable(timer);
+}
+void IRAM_ATTR onTimer()
+{
+    rtc.setTime();
+    // printCurrentTime();
 }
 
 void loop()
@@ -194,21 +199,28 @@ void TaskInternet(void *pvParameters)
         Serial.print("Wifi STA");
         WiFi.softAP("Mcc-Nhom10");
         mess.ip = "Mcc-Nhom10";
+        rtc.setTime(dsrtc.now().unixtime());
+        // Cấu trúc thời gian cho ESP32
         setupServer();
     }
     else
     {
 
         WiFiUDP ntpUDP;
-        NTPClient timeClient(ntpUDP, "pool.ntp.org", 7 * 3600);
+        configTime(0, 0, "pool.ntp.org"); // Đặt múi giờ và NTP server
         Serial.println("");
         Serial.print("Connected to ");
         Serial.println(WiFi.SSID());
         Serial.print("IP address: ");
         Serial.println(WiFi.localIP());
-        timeClient.begin();
-        timeClient.update();
-        rtc.adjust(DateTime(timeClient.getEpochTime()));
+        struct tm timeinfo;
+        while (!getLocalTime(&timeinfo))
+        {
+            Serial.println("Waiting for NTP time sync");
+            vTaskDelay(pdMS_TO_TICKS(1000));
+        }
+        rtc.setTimeStruct(timeinfo);
+        dsrtc.adjust(DateTime(timeinfo.tm_year + 1900, timeinfo.tm_mon + 1, timeinfo.tm_mday, timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec));
         mess.ip = WiFi.localIP().toString();
         setupServer();
     }

@@ -40,10 +40,12 @@ uint8_t deleteFinger(Adafruit_Fingerprint finger,uint8_t idToDelete)
     if (finger.deleteModel(idToDelete))
     {
         Serial.println("Deleted!");
+        return 1;
     }
     else
     {
         Serial.println("Failed to delete");
+        return 0;
     }
 }
 int findEmptyID() {
@@ -56,8 +58,8 @@ int findEmptyID() {
         return number;
     } else {
         Serial.println("Không thể mở file.");
-        return -1;
     }
+    return -1;
 }
 void deleteNumberInFile(uint8_t numberToDelete) {
     File myFile = SD.open("fingerid.txt", FILE_WRITE); // Mở file để ghi dữ liệu (append)

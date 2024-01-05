@@ -36,7 +36,7 @@ void setupServer()
     server.on("/addid", HTTP_POST, [](AsyncWebServerRequest *request)
               { checkAddID(request); });
     server.on("/download", HTTP_GET, [](AsyncWebServerRequest *request)
-              { handleFileDownload(request); } );
+              { handleFileDownload(request); });
     server.begin();
 }
 void handleWebQuery(AsyncWebServerRequest *request)
@@ -160,12 +160,12 @@ void WebQueryprocess(AsyncWebServerRequest *request)
     sqlite3_close(db1);
 }
 
-uint8_t checkAddID( AsyncWebServerRequest *request)
+uint8_t checkAddID(AsyncWebServerRequest *request)
 {
-    if (request->hasParam("name",true) && request->hasParam("position",true))
+    if (request->hasParam("name", true) && request->hasParam("position", true))
     {
-        String name = request->getParam("name",true)->value();
-        String position = request->getParam("position",true)->value();
+        String name = request->getParam("name", true)->value();
+        String position = request->getParam("position", true)->value();
         Serial.print(name);
         Serial.print(position);
         uint8_t emptyID = findEmptyID(); // Tìm ID trống
@@ -177,8 +177,9 @@ uint8_t checkAddID( AsyncWebServerRequest *request)
             Serial.println("B1");
             db_insert(emptyID, name, position); // Them van tay vao Database
             Serial.println("B1");
-            uint8_t enrollSuccess = enrollFingerprint(finger, emptyID) ; // Nạp vân tay vào ID trống
-            if (enrollSuccess != -1){
+            uint8_t enrollSuccess = enrollFingerprint(finger, emptyID); // Nạp vân tay vào ID trống
+            if (enrollSuccess != -1)
+            {
                 deleteNumberInFile(emptyID);
             }
             Serial.println("B1");
@@ -193,7 +194,6 @@ uint8_t checkAddID( AsyncWebServerRequest *request)
             request->send(404, "text/plain", "Full sensor memory. Fingerprints cannot be added anymore");
             return 0;
         }
-
     }
     else
     {
@@ -201,7 +201,7 @@ uint8_t checkAddID( AsyncWebServerRequest *request)
         return 0;
     }
 }
-void handleCheckDelID( AsyncWebServerRequest *request)
+void handleCheckDelID(AsyncWebServerRequest *request)
 {
     String nameValue;
 
@@ -215,7 +215,8 @@ void handleCheckDelID( AsyncWebServerRequest *request)
             // Xóa dữ liệu từ cảm biến vân tay
             uint8_t idToDelete = id;
             uint8_t enrollSuccess = deleteFinger(finger, idToDelete);
-            if (enrollSuccess != -1){
+            if (enrollSuccess != -1)
+            {
                 addNumberInFile(idToDelete);
             }
             // Xóa dữ liệu khỏi cơ sở dữ liệu của bạn ở đây
@@ -282,13 +283,16 @@ bool readWiFiCredentials(char *ssid, char *password)
     return false;
 }
 #define FILE_CHUNK_SIZE 1024
-void handleFileDownload(AsyncWebServerRequest *request) {
+void handleFileDownload(AsyncWebServerRequest *request)
+{
     File file;
     size_t fileSize;
     size_t sentSize = 0;
-    if (!file || !file.available()) {
-        file = SPIFFS.open("/file.txt");?????
-        if (!file) {
+    if (!file || !file.available())
+    {
+        file = SPIFFS.open("/record.txt");
+        if (!file)
+        {
             request->send(404, "text/plain", "File not found");
             return;
         }
@@ -296,24 +300,15 @@ void handleFileDownload(AsyncWebServerRequest *request) {
         sentSize = 0;
     }
 
-    size_t chunkSize = min((size_t)FILE_CHUNK_SIZE, fileSize - sentSize);
-    if (chunkSize > 0) {
-        uint8_t *buffer = (uint8_t *)malloc(chunkSize);
-        if (buffer == NULL) {
-            request->send(500, "text/plain", "Server error");
-            return;
-        }
+    //     AsyncWebServerResponse *response = request->beginResponse("application/octet-stream", file.size(), [file](uint8_t *buffer, size_t maxLen, size_t alreadySent) -> size_t {
+    //         if (file.available()) {
+    //             size_t readSize = file.read(buffer, min(maxLen, (size_t)FILE_CHUNK_SIZE));
+    //             return readSize;
+    //         }
+    //         file.close();
+    //         return 0; // Trả về 0 để đánh dấu kết thúc việc gửi file
+    //     });
 
-        file.seek(sentSize);
-        file.read(buffer, chunkSize);
-        sentSize += chunkSize;
-
-        AsyncWebServerResponse *response = request->beginResponse_P(200, "application/octet-stream", buffer, chunkSize);
-        response->addHeader("Content-Disposition", "attachment; filename=\"file.txt\"");
-        request->send(response);
-
-        free(buffer);
-    } else {
-        file.close();
-    }
+    //     response->addHeader("Content-Disposition", "attachment; filename=\"record.txt\"");
+    //     request->send(response);
 }

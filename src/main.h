@@ -10,9 +10,12 @@
 #define HSPI_SCLK 18
 #define HSPI_SS 15
 
-
+#define BUZZ 12
+hw_timer_t * timer = NULL;
+volatile bool timerFlag = false;
+ESP32Time rtc; // Tạo đối tượng RTC
 Adafruit_Fingerprint finger = Adafruit_Fingerprint(&mySerial);
-RTC_DS1307 rtc;                     // Khai báo đối tượng RTC
+RTC_DS1307 dsrtc;                     // Khai báo đối tượng RTC
 QueueHandle_t QueueHandle;          // Hàng đợi để truyền ID từ TaskFinger đến TaskSQL
 const uint8_t QueueElementSize = 5; // Số lượng phần tử tối đa trong hàng đợi
 TaskHandle_t taskitn;               // Handle của TaskInternet
@@ -22,3 +25,4 @@ void drawTime(LCD u8g2); // Hàm để vẽ thời gian lên màn hình
 // Ve File
 void record(User_if user); // Hàm để ghi dữ liệu vào cơ sở dữ liệu
 
+void IRAM_ATTR onTimer();
