@@ -10,7 +10,7 @@
 #define HSPI_SCLK 18
 #define HSPI_SS 15
 
-#define BUZZ 12
+#define PinBuzz 12
 hw_timer_t * timer = NULL;
 volatile bool timerFlag = false;
 ESP32Time rtc; // Tạo đối tượng RTC

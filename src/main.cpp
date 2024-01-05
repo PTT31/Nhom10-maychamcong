@@ -46,8 +46,8 @@ void setup()
     {
         ; // wait for serial port to connect. Needed for native USB port only
     }
-    pinMode(BUZZ, OUTPUT);
-    digitalWrite(BUZZ, 0);
+    pinMode(PinBuzz, OUTPUT);
+    digitalWrite(PinBuzz, 0);
     beep(500);
     delay(500);
     SPI.begin(HSPI_SCLK, HSPI_MISO, HSPI_MOSI, HSPI_SS);
