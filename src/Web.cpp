@@ -169,22 +169,26 @@ uint8_t checkAddID(AsyncWebServerRequest *request)
         Serial.print(name);
         Serial.print(position);
         uint8_t emptyID = findEmptyID(); // Tìm ID trống
-        Serial.print("B1");
+        Serial.print("B1 ");
         Serial.print(emptyID);
         if (emptyID != -1)
         {
             mess.mode = Insert_finger;
-            Serial.println("B1");
+            Serial.println("B2 ");
             db_insert(emptyID, name, position); // Them van tay vao Database
-            Serial.println("B1");
-            uint8_t enrollSuccess = enrollFingerprint(finger, emptyID); // Nạp vân tay vào ID trống
-            if (enrollSuccess != -1)
-            {
-                deleteNumberInFile(emptyID);
-            }
-            Serial.println("B1");
+            Serial.println("B3 ");
+            uint8_t enrollSuccess ;
+            do{
+            enrollSuccess = enrollFingerprint(finger, emptyID); // Nạp vân tay vào ID trống
+            vTaskDelay(pdMS_TO_TICKS(200));
+            }while(!enrollSuccess);
+            // if (enrollSuccess != -1)
+            // {
+            //     deleteNumberInFile(emptyID);
+            // }
+            Serial.println("B4 ");
             mess.noti = "Insert " + name + "id: " + emptyID;
-            Serial.println("B1");
+            Serial.println("B5 ");
             startTime = millis() - 200000;
             request->send(200, "text/plain", "Fingerprint loaded successfully");
             return 1;
@@ -290,7 +294,7 @@ void handleFileDownload(AsyncWebServerRequest *request)
     size_t sentSize = 0;
     if (!file || !file.available())
     {
-        file = SPIFFS.open("/record.txt");
+        file = SPIFFS.open("record/login.txt");
         if (!file)
         {
             request->send(404, "text/plain", "File not found");

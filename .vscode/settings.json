@@ -7,7 +7,9 @@
         "ostream": "cpp",
         "tuple": "cpp",
         "type_traits": "cpp",
-        "utility": "cpp"
+        "utility": "cpp",
+        "string": "cpp",
+        "string_view": "cpp"
     },
     "C_Cpp.errorSquiggles": "enabled",
     "cmake.sourceDirectory": "D:/DACS/SD_FreeRtos/.pio/libdeps/esp32dev/Adafruit BusIO"

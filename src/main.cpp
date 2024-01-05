@@ -55,8 +55,10 @@ void setup()
     {
         Serial.println("initialization failed!");
     }
+    else{
     sqlite3_initialize();
     Serial.println("initialization done.");
+    }
     Wire.setPins(27, 26);
     if (!dsrtc.begin())
     {
@@ -108,6 +110,8 @@ void loop()
 {
     int finger_id = -1;
     finger_id = Finger_s(finger);
+    // finger.LEDcontrol(1);
+    finger.LEDcontrol(FINGERPRINT_LED_ON, 0, FINGERPRINT_LED_RED);
     if (finger_id != -1)
     {
         Serial.println(xPortGetFreeHeapSize());
@@ -130,7 +134,7 @@ void loop()
             startTime = millis();
         }
     }
-    if ((mess.mode != Scan_finger && (millis() - startTime > delayTime)))
+    if ((mess.mode != Scan_finger && (millis() - startTime > delayTime)) && !(mess.mode == Insert_finger))
     {
         mess.noti = "";
         mess.mode = Scan_finger;
@@ -177,7 +181,7 @@ void loop()
     } while (u8g2.nextPage());
     // int ret = xQueueReceive(QueueHandle, &finger_id, 0);
 
-    vTaskDelay(pdMS_TO_TICKS(500)); // Đợi 1 giây trước khi lặp lại nhiệm vụ
+    vTaskDelay(pdMS_TO_TICKS(700)); // Đợi 1 giây trước khi lặp lại nhiệm vụ
 }
 
 void TaskInternet(void *pvParameters)
@@ -187,6 +191,7 @@ void TaskInternet(void *pvParameters)
     SPIFFS.begin();
     readWiFiCredentials(ssid, password);
     // Kết nối WiFi
+    rtc.setTime(dsrtc.now().unixtime());
     WiFi.begin(ssid, password);
     for (int count; count < 20 && WiFi.status() != WL_CONNECTED; count++)
     {
@@ -207,7 +212,7 @@ void TaskInternet(void *pvParameters)
     {
 
         WiFiUDP ntpUDP;
-        configTime(0, 0, "pool.ntp.org"); // Đặt múi giờ và NTP server
+        configTime(25200, 0, "pool.ntp.org"); // Đặt múi giờ và NTP server
         Serial.println("");
         Serial.print("Connected to ");
         Serial.println(WiFi.SSID());

@@ -87,13 +87,20 @@ int db_insert(uint8_t id, String name, String role)
     sqlite3 *db1;
     sqlite3_stmt *res;
     // Đọc dữ liệu từ cổng serial
-    const int bufferSize = 64;  // Kích thước tối đa của chuỗi char
-    char sqlInsert[bufferSize]; // Mảng char để lưu trữ chuỗi SQL
-    // In chuỗi SQL lên Serial Monitor
-    snprintf(sqlInsert, bufferSize, "INSERT INTO users (finger_id,name,role) VALUES (%s, %s, %s)", id, name, role);
+    // char sqlInsert[128]; // Mảng char để lưu trữ chuỗi SQL
+    // // In chuỗi SQL lên Serial Monitor
+    // snprintf(sqlInsert, 128, "INSERT INTO users (finger_id,name,role) VALUES (%s, %s, %s)", id, name, role);
+    // Serial.println(sqlInsert);
+    String sqlInsert = "INSERT INTO users (finger_id, name, role) VALUES (";
+    sqlInsert += id;
+    sqlInsert += ", '";
+    sqlInsert += name;
+    sqlInsert += "', '";
+    sqlInsert += role;
+    sqlInsert += "');";
     Serial.println(sqlInsert);
     sqlite3_open(USER_DB, &db1);
-    rc = sqlite3_prepare_v2(db1, sqlInsert, -1, &res, NULL);
+    rc = sqlite3_prepare_v2(db1, sqlInsert.c_str(), -1, &res, NULL);
 
     sqlite3_finalize(res); // Cleanup
     sqlite3_close(db1);
