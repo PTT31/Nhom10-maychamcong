@@ -7,6 +7,7 @@ extern message_lcd mess;
 extern unsigned long startTime;
 extern Adafruit_Fingerprint finger;
 AsyncWebServer server(80);
+AsyncEventSource events("/events");
 void notFound(AsyncWebServerRequest *request)
 {
     request->send(404, "text/plain", "Not found");
@@ -14,7 +15,8 @@ void notFound(AsyncWebServerRequest *request)
 
 void setupServer()
 {
-    server.serveStatic("/", SD, "/Web/");
+    server.serveStatic("/",  SD, "/Web/");
+    server.addHandler(&events);
     server.on("/save", HTTP_POST, [](AsyncWebServerRequest *request)
               {
         if (request->hasParam("ssid", true) && request->hasParam("password", true)) {
@@ -27,6 +29,33 @@ void setupServer()
         } else {
             request->send(400, "text/plain", "Missing parameters");
         } });
+    // First request will return 0 results unless you start scan from somewhere else (loop/setup)
+    // Do not request more often than 3-5 seconds
+    server.on("/scan", HTTP_GET, [](AsyncWebServerRequest *request)
+              {
+  String json = "[";
+  int n = WiFi.scanComplete();
+  if(n == -2){
+    WiFi.scanNetworks(true);
+  } else if(n){
+    for (int i = 0; i < n; ++i){
+      if(i) json += ",";
+      json += "{";
+      json += "\"rssi\":"+String(WiFi.RSSI(i));
+      json += ",\"ssid\":\""+WiFi.SSID(i)+"\"";
+      json += ",\"bssid\":\""+WiFi.BSSIDstr(i)+"\"";
+      json += ",\"channel\":"+String(WiFi.channel(i));
+      json += ",\"secure\":"+String(WiFi.encryptionType(i));
+      json += "}";
+    }
+    WiFi.scanDelete();
+    if(WiFi.scanComplete() == -2){
+      WiFi.scanNetworks(true);
+    }
+  }
+  json += "]";
+  request->send(200, "application/json", json);
+  json = String(); });
     server.on("/webquery", HTTP_GET, [](AsyncWebServerRequest *request)
               { handleWebQuery(request); });
     server.on("/query_db", HTTP_POST, [](AsyncWebServerRequest *request)
@@ -35,8 +64,11 @@ void setupServer()
     //           { checkAddID(finger,request); });
     server.on("/addid", HTTP_POST, [](AsyncWebServerRequest *request)
               { checkAddID(request); });
+    server.on("/handleCheckDelID", HTTP_POST, [](AsyncWebServerRequest *request)
+              { handleCheckDelID(request); });
     server.on("/download", HTTP_GET, [](AsyncWebServerRequest *request)
               { handleFileDownload(request); });
+
     server.begin();
 }
 void handleWebQuery(AsyncWebServerRequest *request)
@@ -69,7 +101,7 @@ void handleWebQuery(AsyncWebServerRequest *request)
       </form>\
   </body>\
   </html>";
-    request->send(200, "text/html", temp);
+    request->send(200, "text/html; charset=UTF-8", temp);
 }
 
 void WebQueryprocess(AsyncWebServerRequest *request)
@@ -92,7 +124,7 @@ void WebQueryprocess(AsyncWebServerRequest *request)
         String resp = "Failed to fetch data: ";
         resp += sqlite3_errmsg(db1);
         resp += ".<br><br><input type=button onclick='location.href=\"/\"' value='back'/>";
-        request->send(200, "text/html", resp);
+        request->send(200, "text/html; charset=UTF-8", resp);
         Serial.println(resp);
         sqlite3_finalize(res);
         sqlite3_close(db1);
@@ -107,7 +139,7 @@ void WebQueryprocess(AsyncWebServerRequest *request)
             resp += rec_count;
             resp += ". Please select different range";
             resp += ".<br><br><input type=button onclick='location.href=\"/\"' value='back'/>";
-            request->send(200, "text/html", resp);
+            request->send(200, "text/html; charset=UTF-8", resp);
             Serial.println(resp.c_str());
             sqlite3_finalize(res);
             return;
@@ -127,11 +159,11 @@ void WebQueryprocess(AsyncWebServerRequest *request)
         resp += sqlite3_errmsg(db1);
         resp += ".<br><br><input type=button onclick='location.href=\"/\"' value='back'/>";
         resp += ".<br><br><input type=button onclick='location.href=\"/\"' value='back'/>";
-        request->send(200, "text/html", resp);
+        request->send(200, "text/html; charset=UTF-8", resp);
         Serial.println(resp.c_str());
         return;
     }
-    AsyncResponseStream *response = request->beginResponseStream("text/html");
+    AsyncResponseStream *response = request->beginResponseStream("text/html; charset=UTF-8");
     rec_count = 0;
     String resp = "<html><head><title>ESP32 Sqlite local database query through web server</title>\
           <style>\
@@ -177,20 +209,7 @@ uint8_t checkAddID(AsyncWebServerRequest *request)
             Serial.println("B2 ");
             db_insert(emptyID, name, position); // Them van tay vao Database
             Serial.println("B3 ");
-            uint8_t enrollSuccess ;
-            do{
-            enrollSuccess = enrollFingerprint(finger, emptyID); // Nạp vân tay vào ID trống
-            vTaskDelay(pdMS_TO_TICKS(200));
-            }while(!enrollSuccess);
-            // if (enrollSuccess != -1)
-            // {
-            //     deleteNumberInFile(emptyID);
-            // }
-            Serial.println("B4 ");
-            mess.noti = "Insert " + name + "id: " + emptyID;
-            Serial.println("B5 ");
-            startTime = millis() - 200000;
-            request->send(200, "text/plain", "Fingerprint loaded successfully");
+            request->send(SD, "/Web/event/index.htm");
             return 1;
         }
         else
@@ -219,7 +238,7 @@ void handleCheckDelID(AsyncWebServerRequest *request)
             // Xóa dữ liệu từ cảm biến vân tay
             uint8_t idToDelete = id;
             uint8_t enrollSuccess = deleteFinger(finger, idToDelete);
-            if (enrollSuccess != -1)
+            if (enrollSuccess != 0)
             {
                 addNumberInFile(idToDelete);
             }
@@ -303,16 +322,4 @@ void handleFileDownload(AsyncWebServerRequest *request)
         fileSize = file.size();
         sentSize = 0;
     }
-
-    //     AsyncWebServerResponse *response = request->beginResponse("application/octet-stream", file.size(), [file](uint8_t *buffer, size_t maxLen, size_t alreadySent) -> size_t {
-    //         if (file.available()) {
-    //             size_t readSize = file.read(buffer, min(maxLen, (size_t)FILE_CHUNK_SIZE));
-    //             return readSize;
-    //         }
-    //         file.close();
-    //         return 0; // Trả về 0 để đánh dấu kết thúc việc gửi file
-    //     });
-
-    //     response->addHeader("Content-Disposition", "attachment; filename=\"record.txt\"");
-    //     request->send(response);
 }

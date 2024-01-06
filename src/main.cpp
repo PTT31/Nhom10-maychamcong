@@ -1,9 +1,10 @@
 #include "main.h"
 
 message_lcd mess;
+extern AsyncEventSource events;
 LCD u8g2;
 unsigned long startTime = millis();
-unsigned long delayTime = 5000; // 5 giây
+unsigned long delayTime = 10000; // 5 giây
 void drawTime(LCD u8g2)
 {
     // DateTime now;
@@ -11,7 +12,8 @@ void drawTime(LCD u8g2)
     u8g2.setCursor(5, 12);
     // now = rtc.getTime();
     // String dateTimeString = rtc.getTimeDate();
-    u8g2.print(rtc.getTimeDate());
+    String datetime = rtc.getTime("%H:%M %d-%m-%Y");
+    u8g2.print(datetime);
 };
 void record(User_if user)
 {
@@ -19,9 +21,13 @@ void record(User_if user)
     File dataFile = SD.open("/record/Login.csv", FILE_APPEND); // Mở file để ghi thêm dữ liệu
     if (dataFile)
     {
-        char buffer[50]; // Dung lượng đủ lớn để lưu trữ dữ liệu
-        sprintf(buffer, "%s,%s,%d", rtc.getTimeDate(),
-                user.name, user.finger_id);
+        char buffer[128]; // Dung lượng đủ lớn để lưu trữ dữ liệu
+        String data = rtc.getTimeDate();
+        data += user.name;
+        data += user.finger_id;
+        const int bufferSize = data.length() + 1; // Thêm 1 cho ký tự null
+        // Sao chép dữ liệu từ String sang mảng char
+        data.toCharArray(buffer, bufferSize);
         dataFile.println(buffer);
         dataFile.close();
         if (QueueHandle != NULL)
@@ -55,9 +61,10 @@ void setup()
     {
         Serial.println("initialization failed!");
     }
-    else{
-    sqlite3_initialize();
-    Serial.println("initialization done.");
+    else
+    {
+        sqlite3_initialize();
+        Serial.println("initialization done.");
     }
     Wire.setPins(27, 26);
     if (!dsrtc.begin())
@@ -109,9 +116,8 @@ void IRAM_ATTR onTimer()
 void loop()
 {
     int finger_id = -1;
+    uint8_t emptyID;
     finger_id = Finger_s(finger);
-    // finger.LEDcontrol(1);
-    finger.LEDcontrol(FINGERPRINT_LED_ON, 0, FINGERPRINT_LED_RED);
     if (finger_id != -1)
     {
         Serial.println(xPortGetFreeHeapSize());
@@ -134,10 +140,13 @@ void loop()
             startTime = millis();
         }
     }
-    if ((mess.mode != Scan_finger && (millis() - startTime > delayTime)) && !(mess.mode == Insert_finger))
+    if (mess.mode != Insert_finger)
     {
-        mess.noti = "";
-        mess.mode = Scan_finger;
+        if ((mess.mode != Scan_finger && (millis() - startTime > delayTime)))
+        {
+            mess.noti = "";
+            mess.mode = Scan_finger;
+        }
     }
     u8g2.clearDisplay();
     u8g2.firstPage();
@@ -170,6 +179,15 @@ void loop()
             u8g2.print("Finger Insert");
             u8g2.setCursor(0, 36);
             u8g2.print(mess.noti);
+            emptyID = findEmptyID();
+            // if (!enrollFingerprint(finger, emptyID))
+            //     break;
+            // mess.mode == Scan_finger;
+            while (!enrollFingerprint(finger, emptyID))
+                ;
+            mess.mode = Scan_finger;
+            deleteNumberInFile(emptyID);
+            events.send("Done!", "new_fingerprint", millis());
             break;
         case Incorrect_finger:
             u8g2.setCursor(0, 24); // Đặt vị trí để in tên
@@ -225,7 +243,9 @@ void TaskInternet(void *pvParameters)
             vTaskDelay(pdMS_TO_TICKS(1000));
         }
         rtc.setTimeStruct(timeinfo);
-        dsrtc.adjust(DateTime(timeinfo.tm_year + 1900, timeinfo.tm_mon + 1, timeinfo.tm_mday, timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec));
+        DateTime now = DateTime(rtc.getEpoch());
+        dsrtc.adjust(now); // Thiết lập DS1307 với thời gian từ NTP
+        // dsrtc.adjust(DateTime(timeinfo.tm_year + 1900, timeinfo.tm_mon + 1, timeinfo.tm_mday, timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec));
         mess.ip = WiFi.localIP().toString();
         setupServer();
     }

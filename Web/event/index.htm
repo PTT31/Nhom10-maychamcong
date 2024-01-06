@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ESP32 EventSource Example</title>
+    <script>
+        if (!!window.EventSource) {
+            var source = new EventSource('/events');
+
+            source.addEventListener('open', function(e) {
+                console.log("Events Connected");
+            }, false);
+
+            source.addEventListener('error', function(e) {
+                if (e.target.readyState != EventSource.OPEN) {
+                    console.log("Events Disconnected");
+                }
+            }, false);
+
+            source.addEventListener('message', function(e) {
+                console.log("message", e.data);
+            }, false);
+
+            source.addEventListener('myevent', function(e) {
+                console.log("myevent", e.data);
+            }, false);
+        } else {
+            // EventSource not supported
+            console.log("Your browser does not support EventSource");
+        }
+    </script>
+</head>
+<body>
+    <h1>ESP32 EventSource Example</h1>
+    <p>Status messages will appear in the console.</p>
+</body>
+</html>

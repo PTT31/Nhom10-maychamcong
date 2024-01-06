@@ -86,22 +86,24 @@ int db_insert(uint8_t id, String name, String role)
 {
     sqlite3 *db1;
     sqlite3_stmt *res;
-    // Đọc dữ liệu từ cổng serial
-    // char sqlInsert[128]; // Mảng char để lưu trữ chuỗi SQL
-    // // In chuỗi SQL lên Serial Monitor
-    // snprintf(sqlInsert, 128, "INSERT INTO users (finger_id,name,role) VALUES (%s, %s, %s)", id, name, role);
-    // Serial.println(sqlInsert);
     String sqlInsert = "INSERT INTO users (finger_id, name, role) VALUES (";
     sqlInsert += id;
     sqlInsert += ", '";
     sqlInsert += name;
     sqlInsert += "', '";
     sqlInsert += role;
-    sqlInsert += "');";
+    sqlInsert += "')";
     Serial.println(sqlInsert);
     sqlite3_open(USER_DB, &db1);
     rc = sqlite3_prepare_v2(db1, sqlInsert.c_str(), -1, &res, NULL);
-
+    if (rc != SQLITE_OK)
+    {
+        Serial.println("Dont open database");
+        
+        sqlite3_finalize(res); // Cleanup
+        sqlite3_close(db1);
+        return -1;
+    }
     sqlite3_finalize(res); // Cleanup
     sqlite3_close(db1);
     return 1;
@@ -112,18 +114,20 @@ int db_delete(String data)
 
     // Đọc dữ liệu từ cổng serial
     sqlite3 *db1;
-    const int bufferSize = 64; // Kích thước tối đa của chuỗi char
-    char sqlQuery[bufferSize]; // Mảng char để lưu trữ chuỗi SQL
-    snprintf(sqlQuery, bufferSize, "DELETE FROM user WHERE finger_id = %s", data);
-    Serial.println(sqlQuery);
+    sqlite3_stmt *res;
+    String sqlDel = "delete from users where finger_id = ";
+    sqlDel += data + " ;";
+    Serial.println(sqlDel);
     sqlite3_open(USER_DB, &db1);
-    rc = db_exec(db1, sqlQuery);
+    rc = sqlite3_prepare_v2(db1, sqlDel.c_str(), -1, &res, NULL);
     if (rc != SQLITE_OK)
     {
         Serial.println("Dont open database");
+        sqlite3_finalize(res); // Cleanup
         sqlite3_close(db1);
-        return 0;
+        return -1;
     }
+    sqlite3_finalize(res); // Cleanup
     sqlite3_close(db1);
     Serial.println("User with ID " + String(data) + " has been deleted from the database.");
     return 1;
@@ -137,19 +141,23 @@ uint8_t isIDPresent(String nameValue)
     snprintf(sqlQuery, bufferSize, "SELECT * FROM users WHERE name = '%s'", nameValue.c_str());
 
     rc = sqlite3_prepare_v2(db, sqlQuery, -1, &res, NULL);
-    if (rc != SQLITE_OK) {
+    if (rc != SQLITE_OK)
+    {
         Serial.println("Dont open database");
         sqlite3_finalize(res);
         sqlite3_close(db);
         return -1;
     }
     uint8_t id;
-    if (sqlite3_step(res) == SQLITE_ROW) {
+    if (sqlite3_step(res) == SQLITE_ROW)
+    {
         id = sqlite3_column_int(res, 0);
         sqlite3_finalize(res);
         sqlite3_close(db);
         return id;
-    } else {
+    }
+    else
+    {
         sqlite3_finalize(res);
         sqlite3_close(db);
         return -1;
