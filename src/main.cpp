@@ -23,7 +23,9 @@ void record(User_if user)
     {
         char buffer[128]; // Dung lượng đủ lớn để lưu trữ dữ liệu
         String data = rtc.getTimeDate();
+        data += ",";
         data += user.name;
+        data += ",";
         data += user.finger_id;
         const int bufferSize = data.length() + 1; // Thêm 1 cho ký tự null
         // Sao chép dữ liệu từ String sang mảng char
@@ -251,12 +253,13 @@ void TaskInternet(void *pvParameters)
     }
     while (1)
     {
-        char rc[50];
+        char rc[64];
         int ret = xQueueReceive(QueueHandle, &rc, portMAX_DELAY);
         if (ret == pdPASS)
         {
             Serial.print("Internet: ");
             Serial.println(rc);
+            events.send(rc, "new_fingerprint", millis());
         }
         vTaskDelay(pdMS_TO_TICKS(1000));
     }

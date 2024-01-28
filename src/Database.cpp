@@ -86,24 +86,30 @@ int db_insert(uint8_t id, String name, String role)
 {
     sqlite3 *db1;
     sqlite3_stmt *res;
-    String sqlInsert = "INSERT INTO users (finger_id, name, role) VALUES (";
+    String sqlInsert = "insert into users (finger_id, name, role) values (";
     sqlInsert += id;
     sqlInsert += ", '";
     sqlInsert += name;
     sqlInsert += "', '";
     sqlInsert += role;
-    sqlInsert += "')";
+    sqlInsert += "');";
     Serial.println(sqlInsert);
-    sqlite3_open(USER_DB, &db1);
-    rc = sqlite3_prepare_v2(db1, sqlInsert.c_str(), -1, &res, NULL);
+    rc = sqlite3_open(USER_DB, &db1);
     if (rc != SQLITE_OK)
     {
-        Serial.println("Dont open database");
-        
+        Serial.println("Cannot open database: " + String(sqlite3_errmsg(db1)));
         sqlite3_finalize(res); // Cleanup
         sqlite3_close(db1);
         return -1;
     }
+    rc = sqlite3_prepare_v2(db1, sqlInsert.c_str(), -1, &res, NULL);
+    if (rc != SQLITE_OK) {
+        Serial.println("Failed to execute statement: " + String(sqlite3_errmsg(db1)));
+        sqlite3_finalize(res); // Cleanup
+        sqlite3_close(db1);
+        return -2;
+    }
+
     sqlite3_finalize(res); // Cleanup
     sqlite3_close(db1);
     return 1;

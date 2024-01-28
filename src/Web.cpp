@@ -12,11 +12,43 @@ void notFound(AsyncWebServerRequest *request)
 {
     request->send(404, "text/plain", "Not found");
 }
+String getLastLines(const char *filePath, size_t lineCount)
+{
+    File file = SD.open(filePath, FILE_READ);
+    if (!file)
+    {
+        return "Unable to open file";
+    }
 
+    std::vector<String> lines;
+    while (file.available())
+    {
+        String line = file.readStringUntil('\n');
+        lines.push_back(line);
+        if (lines.size() > lineCount)
+        {
+            lines.erase(lines.begin());
+        }
+    }
+    file.close();
+
+    String result;
+    for (const String &line : lines)
+    {
+        result += line + "\n";
+    }
+    return result;
+}
 void setupServer()
 {
-    server.serveStatic("/",  SD, "/Web/");
+    server.serveStatic("/", SD, "/Web/");
     server.addHandler(&events);
+    server.on("/get-last-lines", HTTP_GET, [](AsyncWebServerRequest *request)
+              {
+        AsyncResponseStream *response = request->beginResponseStream("text/plain");
+        String lastLines = getLastLines("/record/Login.csv", 50);
+        response->print(lastLines);
+        request->send(response); });
     server.on("/save", HTTP_POST, [](AsyncWebServerRequest *request)
               {
         if (request->hasParam("ssid", true) && request->hasParam("password", true)) {
